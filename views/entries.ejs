@@ -1,0 +1,49 @@
+<%- include('layout-top') %>
+<div class="card">
+  <div class="card-header">
+    <h1>Kurulum Kayıtları</h1>
+    <a href="/kayitlar/export" class="btn-secondary">⬇ CSV İndir</a>
+  </div>
+  <form method="get" action="/kayitlar" class="search-form">
+    <input name="q" value="<%= q %>" placeholder="İsim, PC adı veya seri no ara...">
+    <button type="submit">Ara</button>
+    <% if (q) { %><a href="/kayitlar">Temizle</a><% } %>
+  </form>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Kullanıcı</th><th>Departman</th><th>Eski PC Adı</th><th>Eski Seri</th>
+        <th>Yeni Seri</th><th>Not</th><th>Kaydeden</th><th>Tarih</th>
+        <% if (user.role === 'admin') { %><th></th><% } %>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach(r => { %>
+      <tr>
+        <td><%= r.id %></td>
+        <td><%= r.full_name || '-' %></td>
+        <td><%= r.department || '-' %></td>
+        <td><%= r.old_pc_name || '-' %></td>
+        <td><code><%= r.old_pc_serial || '-' %></code></td>
+        <td><code><%= r.new_pc_serial || '-' %></code></td>
+        <td><%= r.notes || '' %></td>
+        <td><%= r.created_by_name %></td>
+        <td class="nowrap"><%= r.created_at %></td>
+        <% if (user.role === 'admin') { %>
+        <td>
+          <form method="post" action="/kayitlar/<%= r.id %>/sil" class="inline"
+                onsubmit="return confirm('Bu kayıt silinsin mi?')">
+            <button class="link-btn danger">Sil</button>
+          </form>
+        </td>
+        <% } %>
+      </tr>
+      <% }) %>
+      <% if (rows.length === 0) { %>
+      <tr><td colspan="10" class="muted center">Kayıt bulunamadı.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+  <p class="muted"><%= rows.length %> kayıt</p>
+</div>
+<%- include('layout-bottom') %>

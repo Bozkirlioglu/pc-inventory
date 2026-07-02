@@ -1,0 +1,33 @@
+# --- Gizli bilgiler ---
+.env
+.env.*
+!.env.example
+
+# --- Bagimliliklar ---
+node_modules/
+
+# --- Yerel gelistirme dokumanlari (repoya girmeyecek) ---
+AGENTS.md
+CLAUDE.md
+docs/
+.claude/
+
+# --- Veri dosyalari: personel listesi (kisisel veri!) ve DB yedekleri asla push edilmez ---
+*.csv
+*.sql
+*.dump
+data/
+
+# --- Loglar ---
+logs/
+*.log
+npm-debug.log*
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+
+# --- Isletim sistemi coplugu ---
+Thumbs.db
+Desktop.ini
+.DS_Store

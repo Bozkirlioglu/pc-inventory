@@ -1,0 +1,15 @@
+<%- include('layout-top') %>
+<div class="card card-narrow">
+  <h1>Giriş</h1>
+  <% if (error) { %><div class="flash flash-error"><%= error %></div><% } %>
+  <form method="post" action="/login">
+    <label>Kullanıcı adı
+      <input name="username" required autofocus autocomplete="username">
+    </label>
+    <label>Şifre
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button type="submit">Giriş Yap</button>
+  </form>
+</div>
+<%- include('layout-bottom') %>

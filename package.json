@@ -1,0 +1,31 @@
+{
+  "name": "pc-envanter",
+  "version": "1.0.0",
+  "description": "PC kurulum/degisim islerinde sahada envanter kaydi toplayan web uygulamasi",
+  "main": "server.js",
+  "license": "Apache-2.0",
+  "author": "Mehmet Bozkirlioglu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bozkirlioglu/pc-inventory.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-mysql-session": "^3.0.3",
+    "express-session": "^1.18.0",
+    "html5-qrcode": "^2.3.8",
+    "multer": "^2.0.1",
+    "mysql2": "^3.11.0"
+  }
+}

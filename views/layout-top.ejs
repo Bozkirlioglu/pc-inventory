@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PC Envanter</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<% if (user) { %>
+<nav>
+  <div class="nav-brand">💻 PC Envanter</div>
+  <div class="nav-links">
+    <a href="/">Yeni Kayıt</a>
+    <a href="/kayitlar">Kayıtlar</a>
+    <% if (user.role === 'admin') { %><a href="/admin">Yönetim</a><% } %>
+  </div>
+  <div class="nav-user">
+    <span><%= user.username %></span>
+    <a href="/sifre-degistir" title="Şifre değiştir">🔑</a>
+    <form method="post" action="/logout" class="inline"><button class="link-btn">Çıkış</button></form>
+  </div>
+</nav>
+<% } %>
+<main>
+<% if (flash) { %>
+  <div class="flash flash-<%= flash.type %>"><%= flash.msg %></div>
+<% } %>

@@ -1,0 +1,143 @@
+<%- include('layout-top') %>
+<div class="card card-narrow">
+  <h1>Yeni Kurulum Kaydı</h1>
+  <form method="post" action="/kayit">
+    <label>Kullanıcı <% if (rules.personnel_id.required) { %><span class="req">*</span><% } %>
+      <input list="personnel-list" id="personnel-search" placeholder="İsim yazarak arayın..."
+             autocomplete="off" <% if (rules.personnel_id.required) { %>required<% } %>>
+      <datalist id="personnel-list">
+        <% personnel.forEach(p => { %>
+          <option data-id="<%= p.id %>" data-pcname="<%= p.old_pc_name || '' %>"
+                  value="<%= p.full_name %><%= p.old_pc_name ? ' — ' + p.old_pc_name : '' %>"></option>
+        <% }) %>
+      </datalist>
+      <input type="hidden" name="personnel_id" id="personnel-id">
+    </label>
+    <label>Eski PC Adı
+      <input id="old-pcname" readonly placeholder="Kullanıcı seçince otomatik dolar" class="readonly">
+    </label>
+    <label>Eski PC Seri No <% if (rules.old_pc_serial.required) { %><span class="req">*</span><% } %>
+      <div class="input-with-btn">
+        <input name="old_pc_serial" id="old-serial" placeholder="Elle girin veya okutun"
+               style="text-transform: uppercase" <% if (rules.old_pc_serial.required) { %>required<% } %>>
+        <button type="button" class="scan-btn" data-target="old-serial" title="Barkod okut">📷 Okut</button>
+      </div>
+    </label>
+    <label>Yeni PC Seri No <% if (rules.new_pc_serial.required) { %><span class="req">*</span><% } %>
+      <div class="input-with-btn">
+        <input name="new_pc_serial" id="new-serial" placeholder="Elle girin veya okutun"
+               style="text-transform: uppercase" <% if (rules.new_pc_serial.required) { %>required<% } %>>
+        <button type="button" class="scan-btn" data-target="new-serial" title="Barkod okut">📷 Okut</button>
+      </div>
+    </label>
+    <div id="scanner-box" hidden>
+      <p class="muted center" id="scan-target-label"></p>
+      <div id="scanner"></div>
+      <p class="muted center" id="scan-status">Kamera başlatılıyor...</p>
+      <button type="button" id="scan-cancel" class="btn-secondary btn-block">İptal</button>
+    </div>
+    <label>Not <% if (rules.notes.required) { %><span class="req">*</span><% } else { %><small>(opsiyonel)</small><% } %>
+      <input name="notes" placeholder="Ek bilgi..." <% if (rules.notes.required) { %>required<% } %>>
+    </label>
+    <button type="submit">Kaydet</button>
+  </form>
+  <% if (personnel.length === 0) { %>
+    <p class="muted">Henüz personel listesi yüklenmemiş. <% if (user.role === 'admin') { %><a href="/admin">Yönetim</a> sayfasından CSV import edin.<% } else { %>Yöneticinizle iletişime geçin.<% } %></p>
+  <% } %>
+</div>
+<script src="/vendor/html5-qrcode/html5-qrcode.min.js"></script>
+<script>
+  const search = document.getElementById('personnel-search');
+  const hiddenId = document.getElementById('personnel-id');
+  const oldPcName = document.getElementById('old-pcname');
+  const options = document.querySelectorAll('#personnel-list option');
+
+  search.addEventListener('input', () => {
+    hiddenId.value = '';
+    oldPcName.value = '';
+    for (const opt of options) {
+      if (opt.value === search.value) {
+        hiddenId.value = opt.dataset.id;
+        oldPcName.value = opt.dataset.pcname;
+        break;
+      }
+    }
+  });
+
+  document.querySelector('form').addEventListener('submit', e => {
+    // Kullanıcı alanına bir şey yazılmış ama listeden eşleşmemişse engelle;
+    // boş bırakmak (kural zorunlu demiyorsa) serbest.
+    if (search.value.trim() && !hiddenId.value) {
+      e.preventDefault();
+      alert('Lütfen listeden geçerli bir kullanıcı seçin veya alanı boş bırakın.');
+    }
+  });
+
+  // --- Barkod okuma (cep telefonu kamerası) — hedef alana yazar ---
+  const scannerBox = document.getElementById('scanner-box');
+  const scanStatus = document.getElementById('scan-status');
+  const scanTargetLabel = document.getElementById('scan-target-label');
+  const scanButtons = document.querySelectorAll('.scan-btn');
+  let scanner = null;
+
+  async function stopScanner() {
+    if (scanner) {
+      try { await scanner.stop(); scanner.clear(); } catch (e) {}
+      scanner = null;
+    }
+    scannerBox.hidden = true;
+    scanButtons.forEach(b => b.disabled = false);
+  }
+
+  scanButtons.forEach(btn => btn.addEventListener('click', async () => {
+    if (!window.isSecureContext) {
+      alert('Kamera yalnızca HTTPS (güvenli bağlantı) üzerinden kullanılabilir.');
+      return;
+    }
+    if (typeof Html5Qrcode === 'undefined') {
+      alert('Barkod kütüphanesi yüklenemedi.');
+      return;
+    }
+    await stopScanner(); // önceki oturum açıksa kapat
+    const target = document.getElementById(btn.dataset.target);
+    scanButtons.forEach(b => b.disabled = true);
+    scannerBox.hidden = false;
+    scanTargetLabel.textContent = btn.closest('label') ? btn.closest('label').textContent.trim().split('\n')[0] : '';
+    scanStatus.textContent = 'Kamera başlatılıyor...';
+
+    scanner = new Html5Qrcode('scanner', {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_93,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.ITF,
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.DATA_MATRIX
+      ]
+    });
+
+    try {
+      await scanner.start(
+        { facingMode: 'environment' }, // arka kamera
+        { fps: 10, qrbox: { width: 280, height: 140 } }, // yatay kutu: 1D barkod için
+        decoded => {
+          target.value = decoded.trim().toUpperCase();
+          if (navigator.vibrate) navigator.vibrate(100);
+          stopScanner();
+        },
+        () => {} // kare başına okunamama normal, sessiz geç
+      );
+      scanStatus.textContent = 'Barkodu çerçeveye hizalayın';
+    } catch (err) {
+      scanStatus.textContent = 'Kamera açılamadı: ' + (err.message || err);
+      scanButtons.forEach(b => b.disabled = false);
+    }
+  }));
+
+  document.getElementById('scan-cancel').addEventListener('click', stopScanner);
+</script>
+<%- include('layout-bottom') %>
