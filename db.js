@@ -43,6 +43,8 @@ async function init() {
       full_name VARCHAR(150) NOT NULL,
       old_pc_name VARCHAR(100) NULL,
       department VARCHAR(100) NULL,
+      desktop TINYINT(1) NOT NULL DEFAULT 0,
+      new_pc_serial VARCHAR(64) NULL,
       UNIQUE KEY uq_person (full_name, old_pc_name)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci`);
 
@@ -53,6 +55,8 @@ async function init() {
       old_pc_name VARCHAR(100) NULL,
       old_pc_serial VARCHAR(64) NULL,
       new_pc_serial VARCHAR(64) NULL,
+      desktop TINYINT(1) NOT NULL DEFAULT 0,
+      todo TEXT NULL,
       notes VARCHAR(500) NULL,
       created_by INT NOT NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -98,6 +102,20 @@ async function init() {
   if (nps && nps.IS_NULLABLE === 'NO') {
     await pool.query('ALTER TABLE entries MODIFY new_pc_serial VARCHAR(64) NULL');
   }
+  // desktop (masaustu mu?) ve todo alanlari sonradan eklendi
+  if (!(await columnInfo('entries', 'desktop'))) {
+    await pool.query('ALTER TABLE entries ADD COLUMN desktop TINYINT(1) NOT NULL DEFAULT 0 AFTER new_pc_serial');
+  }
+  if (!(await columnInfo('entries', 'todo'))) {
+    await pool.query('ALTER TABLE entries ADD COLUMN todo TEXT NULL AFTER desktop');
+  }
+  // personnel: CSV ile onceden yuklenen desktop ve yeni seri no bilgisi
+  if (!(await columnInfo('personnel', 'desktop'))) {
+    await pool.query('ALTER TABLE personnel ADD COLUMN desktop TINYINT(1) NOT NULL DEFAULT 0 AFTER department');
+  }
+  if (!(await columnInfo('personnel', 'new_pc_serial'))) {
+    await pool.query('ALTER TABLE personnel ADD COLUMN new_pc_serial VARCHAR(64) NULL AFTER desktop');
+  }
 
   // Kural satirlarini tohumla (varsayilan: hicbir alan zorunlu degil, desen yok)
   await pool.query(`
@@ -105,6 +123,7 @@ async function init() {
       ('personnel_id',  'Kullanıcı',        0, NULL),
       ('old_pc_serial', 'Eski PC Seri No',  0, NULL),
       ('new_pc_serial', 'Yeni PC Seri No',  0, NULL),
+      ('todo',          '#TODO',            0, NULL),
       ('notes',         'Not',              0, NULL)`);
 
   // Ilk calistirmada varsayilan admin olustur

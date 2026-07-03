@@ -13,19 +13,21 @@
     <thead>
       <tr>
         <th>#</th><th>Kullanıcı</th><th>Departman</th><th>Eski PC Adı</th><th>Eski Seri</th>
-        <th>Yeni Seri</th><th>Not</th><th>Kaydeden</th><th>Tarih</th>
+        <th>Yeni Seri</th><th>Desktop</th><th>#TODO</th><th>Not</th><th>Kaydeden</th><th>Tarih</th>
         <% if (user.role === 'admin') { %><th></th><% } %>
       </tr>
     </thead>
     <tbody>
       <% rows.forEach(r => { %>
-      <tr>
+      <tr class="<%= r.desktop ? 'row-desktop' : '' %>">
         <td><%= r.id %></td>
         <td><%= r.full_name || '-' %></td>
         <td><%= r.department || '-' %></td>
         <td><%= r.old_pc_name || '-' %></td>
         <td><code><%= r.old_pc_serial || '-' %></code></td>
         <td><code><%= r.new_pc_serial || '-' %></code></td>
+        <td class="center"><input type="checkbox" class="checkbox" disabled <%= r.desktop ? 'checked' : '' %>></td>
+        <td style="white-space:pre-line"><%= r.todo || '' %></td>
         <td><%= r.notes || '' %></td>
         <td><%= r.created_by_name %></td>
         <td class="nowrap"><%= r.created_at %></td>
@@ -40,7 +42,7 @@
       </tr>
       <% }) %>
       <% if (rows.length === 0) { %>
-      <tr><td colspan="10" class="muted center">Kayıt bulunamadı.</td></tr>
+      <tr><td colspan="12" class="muted center">Kayıt bulunamadı.</td></tr>
       <% } %>
     </tbody>
   </table>
