@@ -1,6 +1,6 @@
 {
   "name": "pc-envanter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "PC kurulum/degisim islerinde sahada envanter kaydi toplayan web uygulamasi",
   "main": "server.js",
   "license": "Apache-2.0",

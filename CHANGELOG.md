@@ -2,12 +2,18 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
-## [Unreleased]
+## [1.0.3] - 2026-07-09
 
 ### Eklenenler
 - Yeni PC seri no alanına **🖼️ Foto** düğmesi: canlı tarayıcının tutmadığı zor (yıpranmış, loş,
   küçük) barkodlar için telefonun kamera uygulamasıyla fotoğraf çekilir ve barkod fotoğraftan
   çözülür. Canlı 📷 Okut hızlı yol olarak kalır.
+
+### Düzeltilenler
+- Gizli olması gereken kamera dosya girişleri formun altında "Dosya Seç" alanları olarak
+  görünüyordu (genel `input { display: block }` kuralı `hidden` özniteliğini eziyordu).
+  Girişler ilgili seri no alanlarının altına taşındı; yalnızca 📷 Metin Oku / 🖼️ Foto
+  düğmesine basılınca görünürler ve kapatma/başarılı okuma sonrasında tekrar gizlenirler.
 
 ## [1.0.2] - 2026-07-08
 
@@ -60,6 +66,7 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 - MySQL şeması ilk çalıştırmada otomatik kurulum + idempotent migration altyapısı
 - Mobil uyumlu arayüz, reverse proxy arkasında production çalıştırma desteği
 
+[1.0.3]: https://github.com/Bozkirlioglu/pc-inventory/releases/tag/v1.0.3
 [1.0.2]: https://github.com/Bozkirlioglu/pc-inventory/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Bozkirlioglu/pc-inventory/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Bozkirlioglu/pc-inventory/releases/tag/v1.0.0
