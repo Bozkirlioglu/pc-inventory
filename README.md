@@ -5,7 +5,7 @@ mobil uyumlu, internete açık çalışabilen hafif bir web uygulaması.
 
 Teknisyen telefonundan veya bilgisayarından giriş yapar, listeden kullanıcıyı seçer
 (yeni PC adı, desktop bilgisi ve seri numarası bilgileri otomatik gelir), eski PC seri
-numarasını elle yazar veya telefon kamerasıyla OCR metin okuma yapar, yeni PC seri
+numarasını elle yazar veya **etiketin fotoğrafını çekip OCR ile okutur**, yeni PC seri
 numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve kaydeder.
 
 ## Neler yapabilir?
@@ -13,7 +13,7 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
 ### Kayıt toplama
 - 📋 Arama destekli kullanıcı seçimi — personel listesi önceden yüklenir, teknisyen isim yazarak bulur
 - 🖥️ Yeni PC adı, desktop işareti ve (önceden yüklendiyse) eski/yeni PC seri numarası kullanıcı seçilince otomatik dolar
-- 📷 **Eski PC seri no için OCR** — barkodsuz etiketlerde telefon kamerasıyla metin okur; sonuç formda düzenlenebilir
+- 📷 **Eski PC seri no için fotoğraftan OCR** — telefonun kamera uygulamasıyla etiket fotoğrafı çekilir, seri numarası tarayıcıda okunur; birden fazla aday bulunursa doğru değer dokunarak seçilir, sonuç formda düzenlenebilir
 - 📷 **Barkodla yeni PC seri no girişi** — telefon kamerasıyla Code 128, Code 39/93, EAN, UPC, ITF, QR ve DataMatrix okur; elle giriş her zaman mümkün
 - ✅ **Desktop** işaretli kayıtlar listede yeşil (`#77DD77`) arka planla vurgulanır; formda checkbox işaretlenince sayfa arka planı da yeşile döner
 - 📝 **#TODO** alanı — kayıt başına çok satırlı yapılacaklar notu (Not alanının üzerinde)
@@ -77,15 +77,17 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
 2. Alan zorunluluklarını ve biçim desenlerini **Yönetim → Alan Kuralları**'ndan ayarlayın.
 3. Teknisyen hesaplarını Yönetim sayfasından açın.
 4. **Yeni Kayıt** sayfasında kullanıcıyı seçin — yeni PC adı, desktop işareti ve seri no bilgileri
-   (CSV'de yüklendiyse) otomatik dolar. Eski seri numarasını elle veya 📷 Metin Oku butonuyla,
-   yeni seri numarasını elle veya 📷 Okut butonuyla barkod okutarak girin; gerekiyorsa #TODO ve Not alanlarını doldurun.
+   (CSV'de yüklendiyse) otomatik dolar. Eski seri numarasını elle veya 📷 Metin Oku ile
+   etiketin fotoğrafını çekerek, yeni seri numarasını elle veya 📷 Okut butonuyla barkod
+   okutarak girin; gerekiyorsa #TODO ve Not alanlarını doldurun.
 5. **Kayıtlar** sayfasından arayın, CSV olarak dışa aktarın.
 
 ## Canlıya alma (production)
 
 - HTTPS/SSL sonlandırmayı reverse proxy yapar; uygulama HTTP dinler.
   `.env` içinde `NODE_ENV=production` açın (oturum çerezi `Secure` işaretlenir).
-- ⚠️ **Kamera özellikleri için HTTPS şarttır** — tarayıcılar barkod ve OCR kamera erişimine yalnızca güvenli bağlantıda izin verir.
+- ⚠️ **Barkod okuma için HTTPS şarttır** — tarayıcılar canlı kamera erişimine yalnızca güvenli
+  bağlantıda izin verir. Eski seri OCR'ı fotoğraf çekimiyle çalıştığı için HTTPS gerektirmez.
 - Süreç yöneticisi önerilir (pm2, systemd, NSSM) — uygulama çökerse otomatik yeniden başlar.
 - Oturumlar MySQL'de tutulduğu için uygulama yeniden başlatıldığında kullanıcılar atılmaz.
 

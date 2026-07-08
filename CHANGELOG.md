@@ -2,16 +2,22 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
-## [Unreleased]
+## [1.0.2] - 2026-07-08
 
 ### Eklenenler
-- Eski PC seri numarası için telefon kamerasından OCR ile metin okuma eklendi; okunan değer kaydetmeden önce formda kontrol edilebilir.
+- **Eski PC seri numarası için fotoğraftan OCR**: 📷 Metin Oku düğmesi telefonun kendi kamera
+  uygulamasını açar, çekilen etiket fotoğrafı tarayıcıda Tesseract.js ile okunur. Birden fazla
+  aday değer bulunursa teknisyen doğru seri numarasını dokunarak seçer; okunamazsa Tekrar Çek
+  ile yeni fotoğraf çekilir. Bu yol HTTPS gerektirmez ve kameranın flaşı kullanılabilir.
 - Personel CSV import formatı `Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No` olarak genişletildi.
 - Personel ve kayıt şemasına `new_pc_name`; personel şemasına ön-yüklenebilir `old_pc_serial` alanı eklendi.
 
 ### Değişenler
 - Kayıt formunda otomatik dolan PC adı alanı artık arayüzde `Yeni PC Adı` olarak gösterilir; `old_pc_name` veritabanında korunur.
 - CSV importta boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır.
+- OCR ilk olarak canlı kamera görüntüsünden okuma olarak denendi; saha testinde küçük etiket
+  yazısı video karesinden okunamadığı için fotoğraf tabanlı akışa geçildi (netleme/çözünürlük
+  native kamerada çok daha iyi).
 
 ## [1.0.1] - 2026-07-03
 
@@ -47,5 +53,6 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 - MySQL şeması ilk çalıştırmada otomatik kurulum + idempotent migration altyapısı
 - Mobil uyumlu arayüz, reverse proxy arkasında production çalıştırma desteği
 
+[1.0.2]: https://github.com/Bozkirlioglu/pc-inventory/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Bozkirlioglu/pc-inventory/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Bozkirlioglu/pc-inventory/releases/tag/v1.0.0
