@@ -40,7 +40,12 @@
     </div>
     <div id="ocr-box" hidden>
       <p class="muted center" id="ocr-status">Kamera başlatılıyor...</p>
-      <video id="ocr-video" autoplay playsinline muted></video>
+      <div id="ocr-frame">
+        <video id="ocr-video" autoplay playsinline muted></video>
+        <div class="ocr-shade ocr-shade-top"></div>
+        <div class="ocr-shade ocr-shade-bottom"></div>
+        <div class="ocr-guide"></div>
+      </div>
       <canvas id="ocr-canvas" hidden></canvas>
       <div class="action-row">
         <button type="button" id="ocr-read" class="btn-secondary">Oku</button>
@@ -214,9 +219,9 @@
     const videoHeight = ocrVideo.videoHeight;
     const source = {
       x: Math.round(videoWidth * 0.05),
-      y: Math.round(videoHeight * 0.30),
+      y: Math.round(videoHeight * 0.40),
       width: Math.round(videoWidth * 0.90),
-      height: Math.round(videoHeight * 0.40)
+      height: Math.round(videoHeight * 0.20)
     };
     const scale = 2;
     ocrCanvas.width = source.width * scale;
