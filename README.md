@@ -14,7 +14,7 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
 - 📋 Arama destekli kullanıcı seçimi — personel listesi önceden yüklenir, teknisyen isim yazarak bulur
 - 🖥️ Yeni PC adı, desktop işareti ve (önceden yüklendiyse) eski/yeni PC seri numarası kullanıcı seçilince otomatik dolar
 - 📷 **Eski PC seri no için fotoğraftan OCR** — telefonun kamera uygulamasıyla etiket fotoğrafı çekilir, seri numarası tarayıcıda okunur; birden fazla aday bulunursa doğru değer dokunarak seçilir, sonuç formda düzenlenebilir
-- 📷 **Barkodla yeni PC seri no girişi** — telefon kamerasıyla Code 128, Code 39/93, EAN, UPC, ITF, QR ve DataMatrix okur; elle giriş her zaman mümkün
+- 📷 **Barkodla yeni PC seri no girişi** — telefon kamerasıyla Code 128, Code 39/93, EAN, UPC, ITF, QR ve DataMatrix okur; canlı tarayıcının tutmadığı zor barkodlar için 🖼️ Foto ile fotoğraf çekip çözme yedeği vardır; elle giriş her zaman mümkün
 - ✅ **Desktop** işaretli kayıtlar listede yeşil (`#77DD77`) arka planla vurgulanır; formda checkbox işaretlenince sayfa arka planı da yeşile döner
 - 📝 **#TODO** alanı — kayıt başına çok satırlı yapılacaklar notu (Not alanının üzerinde)
 - 🔁 Yeni seri numarasında mükerrer kayıt engeli
@@ -79,7 +79,8 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
 4. **Yeni Kayıt** sayfasında kullanıcıyı seçin — yeni PC adı, desktop işareti ve seri no bilgileri
    (CSV'de yüklendiyse) otomatik dolar. Eski seri numarasını elle veya 📷 Metin Oku ile
    etiketin fotoğrafını çekerek, yeni seri numarasını elle veya 📷 Okut butonuyla barkod
-   okutarak girin; gerekiyorsa #TODO ve Not alanlarını doldurun.
+   okutarak girin (barkod tutmuyorsa 🖼️ Foto ile fotoğraf çekip çözün); gerekiyorsa #TODO
+   ve Not alanlarını doldurun.
 5. **Kayıtlar** sayfasından arayın, CSV olarak dışa aktarın.
 
 ## Canlıya alma (production)

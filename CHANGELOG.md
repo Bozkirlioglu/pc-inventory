@@ -2,6 +2,13 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
+## [Unreleased]
+
+### Eklenenler
+- Yeni PC seri no alanına **🖼️ Foto** düğmesi: canlı tarayıcının tutmadığı zor (yıpranmış, loş,
+  küçük) barkodlar için telefonun kamera uygulamasıyla fotoğraf çekilir ve barkod fotoğraftan
+  çözülür. Canlı 📷 Okut hızlı yol olarak kalır.
+
 ## [1.0.2] - 2026-07-08
 
 ### Eklenenler

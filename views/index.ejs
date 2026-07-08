@@ -30,6 +30,7 @@
         <input name="new_pc_serial" id="new-serial" placeholder="Elle girin veya okutun"
                style="text-transform: uppercase" <% if (rules.new_pc_serial.required) { %>required<% } %>>
         <button type="button" class="scan-btn" data-target="new-serial" title="Barkod okut">📷 Okut</button>
+        <button type="button" id="barcode-photo" title="Zor barkodlar için: fotoğraf çekip çöz">🖼️ Foto</button>
       </div>
     </label>
     <div id="scanner-box" hidden>
@@ -48,6 +49,7 @@
       </div>
     </div>
     <input type="file" id="ocr-file" accept="image/*" capture="environment" hidden>
+    <input type="file" id="barcode-file" accept="image/*" capture="environment" hidden>
     <label class="checkbox-label">
       <input type="checkbox" name="desktop" id="desktop" class="checkbox" value="1"> Desktop
     </label>
@@ -116,6 +118,18 @@
   const scanStatus = document.getElementById('scan-status');
   const scanTargetLabel = document.getElementById('scan-target-label');
   const scanButtons = document.querySelectorAll('.scan-btn');
+  const BARCODE_FORMATS = typeof Html5QrcodeSupportedFormats !== 'undefined' ? [
+    Html5QrcodeSupportedFormats.CODE_128,
+    Html5QrcodeSupportedFormats.CODE_39,
+    Html5QrcodeSupportedFormats.CODE_93,
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.EAN_8,
+    Html5QrcodeSupportedFormats.UPC_A,
+    Html5QrcodeSupportedFormats.UPC_E,
+    Html5QrcodeSupportedFormats.ITF,
+    Html5QrcodeSupportedFormats.QR_CODE,
+    Html5QrcodeSupportedFormats.DATA_MATRIX
+  ] : [];
   let scanner = null;
 
   async function stopScanner() {
@@ -143,20 +157,7 @@
     scanTargetLabel.textContent = btn.closest('label') ? btn.closest('label').textContent.trim().split('\n')[0] : '';
     scanStatus.textContent = 'Kamera başlatılıyor...';
 
-    scanner = new Html5Qrcode('scanner', {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.CODE_93,
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.ITF,
-        Html5QrcodeSupportedFormats.QR_CODE,
-        Html5QrcodeSupportedFormats.DATA_MATRIX
-      ]
-    });
+    scanner = new Html5Qrcode('scanner', { formatsToSupport: BARCODE_FORMATS });
 
     try {
       await scanner.start(
@@ -177,6 +178,45 @@
   }));
 
   document.getElementById('scan-cancel').addEventListener('click', stopScanner);
+
+  // --- Zor barkodlar için yedek: telefonun kamera uygulamasıyla fotoğraf çekip çöz ---
+  // Canlı tarayıcı tutmadığında (yıpranmış/loş/küçük barkod) native kameranın
+  // netleme ve flaşıyla çekilen tek kare çoğu zaman kurtarır.
+  const barcodePhotoBtn = document.getElementById('barcode-photo');
+  const barcodeFile = document.getElementById('barcode-file');
+  let barcodeBusy = false;
+
+  barcodePhotoBtn.addEventListener('click', async () => {
+    if (typeof Html5Qrcode === 'undefined') {
+      alert('Barkod kütüphanesi yüklenemedi.');
+      return;
+    }
+    await stopScanner();
+    barcodeFile.value = '';
+    barcodeFile.click(); // telefonun kendi kamera uygulamasını açar
+  });
+
+  barcodeFile.addEventListener('change', async () => {
+    const file = barcodeFile.files && barcodeFile.files[0];
+    if (!file || barcodeBusy) return;
+    barcodeBusy = true;
+    scannerBox.hidden = false;
+    scanTargetLabel.textContent = 'Yeni PC Seri No';
+    scanStatus.textContent = 'Fotoğraftaki barkod çözülüyor...';
+    const fileScanner = new Html5Qrcode('scanner', { formatsToSupport: BARCODE_FORMATS });
+    try {
+      const decoded = await fileScanner.scanFile(file, /* showImage */ false);
+      newSerialInput.value = decoded.trim().toUpperCase();
+      if (navigator.vibrate) navigator.vibrate(100);
+      scannerBox.hidden = true;
+    } catch (err) {
+      scanStatus.textContent = 'Barkod bulunamadı. Barkoda yaklaşıp dik açıyla, net bir fotoğraf çekin ve 🖼️ Foto ile tekrar deneyin.';
+    } finally {
+      try { fileScanner.clear(); } catch (e) {}
+      barcodeBusy = false;
+      barcodeFile.value = ''; // aynı dosya yeniden seçilebilsin diye sıfırla
+    }
+  });
 
   // --- Eski seri no için OCR: telefonun kamera uygulamasıyla çekilen fotoğraftan okuma ---
   // Canlı video karesi yerine native kamera fotoğrafı kullanılır: netleme/HDR çok daha iyi,
