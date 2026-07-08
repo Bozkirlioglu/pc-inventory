@@ -25,6 +25,7 @@
         <button type="button" id="ocr-start" title="Kameradan metin oku">📷 Metin Oku</button>
       </div>
     </label>
+    <input type="file" id="ocr-file" accept="image/*" capture="environment" hidden>
     <label>Yeni PC Seri No <% if (rules.new_pc_serial.required) { %><span class="req">*</span><% } %>
       <div class="input-with-btn">
         <input name="new_pc_serial" id="new-serial" placeholder="Elle girin veya okutun"
@@ -33,6 +34,7 @@
         <button type="button" id="barcode-photo" title="Zor barkodlar için: fotoğraf çekip çöz">🖼️ Foto</button>
       </div>
     </label>
+    <input type="file" id="barcode-file" accept="image/*" capture="environment" hidden>
     <div id="scanner-box" hidden>
       <p class="muted center" id="scan-target-label"></p>
       <div id="scanner"></div>
@@ -48,8 +50,6 @@
         <button type="button" id="ocr-cancel" class="btn-secondary">Kapat</button>
       </div>
     </div>
-    <input type="file" id="ocr-file" accept="image/*" capture="environment" hidden>
-    <input type="file" id="barcode-file" accept="image/*" capture="environment" hidden>
     <label class="checkbox-label">
       <input type="checkbox" name="desktop" id="desktop" class="checkbox" value="1"> Desktop
     </label>
@@ -139,6 +139,8 @@
     }
     scannerBox.hidden = true;
     scanButtons.forEach(b => b.disabled = false);
+    const bf = document.getElementById('barcode-file');
+    if (bf) bf.hidden = true; // İptal ile kapatınca fotoğraf yedeği de gizlensin
   }
 
   scanButtons.forEach(btn => btn.addEventListener('click', async () => {
@@ -193,6 +195,7 @@
     }
     await stopScanner();
     barcodeFile.value = '';
+    barcodeFile.hidden = false; // otomatik dialog açılmazsa görünür Dosya Seç yedek olur
     barcodeFile.click(); // telefonun kendi kamera uygulamasını açar
   });
 
@@ -209,6 +212,7 @@
       newSerialInput.value = decoded.trim().toUpperCase();
       if (navigator.vibrate) navigator.vibrate(100);
       scannerBox.hidden = true;
+      barcodeFile.hidden = true;
     } catch (err) {
       scanStatus.textContent = 'Barkod bulunamadı. Barkoda yaklaşıp dik açıyla, net bir fotoğraf çekin ve 🖼️ Foto ile tekrar deneyin.';
     } finally {
@@ -236,6 +240,7 @@
     ocrBox.hidden = true;
     ocrCandidates.innerHTML = '';
     ocrFile.value = '';
+    ocrFile.hidden = true;
   }
 
   function useSerial(value) {
@@ -388,6 +393,7 @@
     }
     await stopScanner();
     ocrFile.value = '';
+    ocrFile.hidden = false; // otomatik dialog açılmazsa görünür Dosya Seç yedek olur
     ocrFile.click(); // telefonun kendi kamera uygulamasını açar
   });
 

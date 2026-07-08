@@ -58,7 +58,9 @@ input, select, textarea {
 textarea { resize: vertical; }
 input:focus, select:focus, textarea:focus { outline: 2px solid #4361ee55; border-color: #4361ee; }
 input.readonly { background: #f5f6f8; color: #666; }
-input[type="file"] { padding: 6px; }
+input[type="file"] { padding: 6px; margin-bottom: 12px; }
+/* Genel input { display: block } kuralı hidden attribute'unu ezmesin */
+[hidden] { display: none !important; }
 
 button[type="submit"], .btn-secondary {
   background: #4361ee;
