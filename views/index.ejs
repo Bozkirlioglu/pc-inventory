@@ -39,20 +39,15 @@
       <button type="button" id="scan-cancel" class="btn-secondary btn-block">İptal</button>
     </div>
     <div id="ocr-box" hidden>
-      <p class="muted center" id="ocr-status">Kamera başlatılıyor...</p>
-      <div id="ocr-frame">
-        <video id="ocr-video" autoplay playsinline muted></video>
-        <div class="ocr-shade ocr-shade-top"></div>
-        <div class="ocr-shade ocr-shade-bottom"></div>
-        <div class="ocr-guide"></div>
-      </div>
+      <p class="muted center" id="ocr-status"></p>
+      <div id="ocr-candidates"></div>
       <canvas id="ocr-canvas" hidden></canvas>
       <div class="action-row">
-        <button type="button" id="ocr-read" class="btn-secondary">Oku</button>
-        <button type="button" id="ocr-torch" class="btn-secondary" hidden>🔦 Işık</button>
-        <button type="button" id="ocr-cancel" class="btn-secondary">İptal</button>
+        <button type="button" id="ocr-retake" class="btn-secondary">📷 Tekrar Çek</button>
+        <button type="button" id="ocr-cancel" class="btn-secondary">Kapat</button>
       </div>
     </div>
+    <input type="file" id="ocr-file" accept="image/*" capture="environment" hidden>
     <label class="checkbox-label">
       <input type="checkbox" name="desktop" id="desktop" class="checkbox" value="1"> Desktop
     </label>
@@ -183,43 +178,71 @@
 
   document.getElementById('scan-cancel').addEventListener('click', stopScanner);
 
-  // --- Eski seri no için OCR (kamera görüntüsünden metin okuma) ---
+  // --- Eski seri no için OCR: telefonun kamera uygulamasıyla çekilen fotoğraftan okuma ---
+  // Canlı video karesi yerine native kamera fotoğrafı kullanılır: netleme/HDR çok daha iyi,
+  // HTTPS gerektirmez ve tam sensör çözünürlüğü gelir.
   const ocrBox = document.getElementById('ocr-box');
   const ocrStatus = document.getElementById('ocr-status');
-  const ocrVideo = document.getElementById('ocr-video');
   const ocrCanvas = document.getElementById('ocr-canvas');
+  const ocrCandidates = document.getElementById('ocr-candidates');
   const ocrStart = document.getElementById('ocr-start');
-  const ocrRead = document.getElementById('ocr-read');
-  const ocrTorch = document.getElementById('ocr-torch');
+  const ocrFile = document.getElementById('ocr-file');
+  const ocrRetake = document.getElementById('ocr-retake');
   const ocrCancel = document.getElementById('ocr-cancel');
-  let ocrStream = null;
   let ocrWorker = null;
+  let ocrBusy = false;
 
-  async function stopOcr() {
-    if (ocrStream) {
-      ocrStream.getTracks().forEach(track => track.stop());
-      ocrStream = null;
-    }
-    ocrVideo.srcObject = null;
+  function closeOcr() {
     ocrBox.hidden = true;
-    ocrStart.disabled = false;
-    ocrRead.disabled = true;
-    ocrTorch.hidden = true;
-    ocrTorch.dataset.on = '0';
+    ocrCandidates.innerHTML = '';
+    ocrFile.value = '';
   }
 
-  function normalizeSerial(text) {
-    const cleaned = String(text || '')
-      .toUpperCase()
-      .replace(/\b(SERIAL|SERIALNO|SERIALNUMBER|SERI|SERI NO|S\/N|SN)\b/g, ' ');
-    const candidates = cleaned
-      .split(/\s+/)
-      .map(part => part.replace(/[^A-Z0-9\-_/]/g, ''))
-      .filter(part => /[A-Z0-9]/.test(part) && part.length >= 4)
-      .sort((a, b) => b.length - a.length);
-    if (candidates[0]) return candidates[0];
-    const compact = cleaned.replace(/[^A-Z0-9\-_/]/g, '');
-    return compact.length >= 4 ? compact : '';
+  function useSerial(value) {
+    oldSerialInput.value = value;
+    oldSerialInput.focus();
+    if (navigator.vibrate) navigator.vibrate(100);
+    closeOcr();
+  }
+
+  // Etikette seri dışında da çok metin olur (model adı, parça no, uyarılar...);
+  // bilinen kelimeleri ele, rakam içeren 4-20 karakterlik parçaları aday yap.
+  const OCR_STOPWORDS = new Set(['SERVICE', 'SERIAL', 'NUMBER', 'MODEL', 'MADE', 'CHINA', 'VIETNAM',
+    'ASSEMBLED', 'PRODUCT', 'WINDOWS', 'RATING', 'INPUT', 'OUTPUT', 'LISTED', 'WARRANTY', 'REGULATORY',
+    'LATITUDE', 'OPTIPLEX', 'VOSTRO', 'INSPIRON', 'PRECISION', 'THINKPAD', 'THINKCENTRE', 'IDEAPAD',
+    'ELITEBOOK', 'PROBOOK', 'PRODESK', 'ELITEDESK', 'PAVILION', 'TRAVELMATE', 'ASPIRE', 'EXTENSA']);
+
+  function extractCandidates(text) {
+    const up = String(text || '').toUpperCase();
+    // "S/N ABC1234" gibi anahtar kelimenin hemen ardından gelen değer en güçlü aday
+    const keyed = up.match(/\b(?:S\/N|SN|SERIAL\s*(?:NO|NUMBER)?|SERVICE\s*TAG|SERI\s*NO)\b[:#\s]*([A-Z0-9][A-Z0-9\-_/]{3,})/);
+    const tokens = up.split(/\s+/)
+      .map(t => t.replace(/[^A-Z0-9\-_/]/g, ''))
+      .filter(t => t.length >= 4 && t.length <= 20 && !OCR_STOPWORDS.has(t));
+    const withDigit = tokens.filter(t => /[0-9]/.test(t));
+    const pool = withDigit.length ? withDigit : tokens; // tamamı harf olan seriler için geri düşüş
+    // Seri numaraları çoğunlukla 6-12 karakter — o aralığa yakın olanları öne al
+    pool.sort((a, b) => Math.abs(a.length - 9) - Math.abs(b.length - 9));
+    const seen = new Set();
+    const out = [];
+    if (keyed && keyed[1] && !OCR_STOPWORDS.has(keyed[1])) { seen.add(keyed[1]); out.push(keyed[1]); }
+    for (const t of pool) {
+      if (!seen.has(t)) { seen.add(t); out.push(t); }
+      if (out.length >= 6) break;
+    }
+    return out;
+  }
+
+  function showCandidates(list) {
+    ocrCandidates.innerHTML = '';
+    list.forEach(value => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ocr-candidate';
+      b.textContent = value;
+      b.addEventListener('click', () => useSerial(value));
+      ocrCandidates.appendChild(b);
+    });
   }
 
   function histPercentile(hist, total, p) {
@@ -232,23 +255,21 @@
     return 255;
   }
 
-  // Kılavuz bandını kırpar, gri tona çevirir ve %1-%99 persentil aralığına
-  // kontrast gerer (tek bir parlama noktası germeyi bozmasın diye min/max değil).
-  function captureOcrFrame() {
-    const videoWidth = ocrVideo.videoWidth;
-    const videoHeight = ocrVideo.videoHeight;
-    const source = {
-      x: Math.round(videoWidth * 0.05),
-      y: Math.round(videoHeight * 0.40),
-      width: Math.round(videoWidth * 0.90),
-      height: Math.round(videoHeight * 0.20)
-    };
-    // OCR girişi ~1600 px genişlikte olsun; düşük çözünürlüklü kamerada daha çok büyüt
-    const scale = Math.min(4, Math.max(1.5, 1600 / source.width));
-    ocrCanvas.width = Math.round(source.width * scale);
-    ocrCanvas.height = Math.round(source.height * scale);
+  // Fotoğrafı en fazla ~2200 px olacak şekilde küçültür, gri tona çevirir ve
+  // %1-%99 persentil aralığına kontrast gerer (tek parlama noktası germeyi bozmasın diye min/max değil).
+  async function photoToFrame(file) {
+    let bmp;
+    try {
+      bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); // EXIF dönüşünü uygula
+    } catch (e) {
+      bmp = await createImageBitmap(file); // eski tarayıcılar seçenek nesnesini desteklemeyebilir
+    }
+    const ratio = Math.min(1, 2200 / Math.max(bmp.width, bmp.height));
+    ocrCanvas.width = Math.round(bmp.width * ratio);
+    ocrCanvas.height = Math.round(bmp.height * ratio);
     const ctx = ocrCanvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(ocrVideo, source.x, source.y, source.width, source.height, 0, 0, ocrCanvas.width, ocrCanvas.height);
+    ctx.drawImage(bmp, 0, 0, ocrCanvas.width, ocrCanvas.height);
+    bmp.close();
 
     const image = ctx.getImageData(0, 0, ocrCanvas.width, ocrCanvas.height);
     const total = ocrCanvas.width * ocrCanvas.height;
@@ -314,72 +335,37 @@
     });
     await ocrWorker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_/ ',
-      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
+      tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT, // etikette dağınık kısa metinler var
       preserve_interword_spaces: '1'
     });
     return ocrWorker;
   }
 
   ocrStart.addEventListener('click', async () => {
-    if (!window.isSecureContext) {
-      alert('Kamera yalnızca HTTPS (güvenli bağlantı) üzerinden kullanılabilir.');
-      return;
-    }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Bu tarayıcı kamera erişimini desteklemiyor.');
-      return;
-    }
     if (typeof Tesseract === 'undefined') {
       alert('OCR kütüphanesi yüklenemedi.');
       return;
     }
     await stopScanner();
-    await stopOcr();
-    ocrStart.disabled = true;
-    ocrRead.disabled = true;
-    ocrBox.hidden = false;
-    ocrStatus.textContent = 'Kamera başlatılıyor...';
-    try {
-      // Yüksek çözünürlük şart: varsayılan 640x480'de etiket yazısı okunamayacak kadar küçük kalıyor
-      ocrStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          advanced: [{ focusMode: 'continuous' }] // desteklenmeyen cihazlar yok sayar
-        },
-        audio: false
-      });
-      ocrVideo.srcObject = ocrStream;
-      await new Promise(resolve => {
-        if (ocrVideo.videoWidth) return resolve();
-        ocrVideo.onloadedmetadata = () => resolve();
-      });
-      const track = ocrStream.getVideoTracks()[0];
-      const caps = track.getCapabilities ? track.getCapabilities() : {};
-      ocrTorch.hidden = !caps.torch;
-      ocrTorch.dataset.on = '0';
-      ocrRead.disabled = false;
-      ocrStatus.textContent = 'Eski PC seri numarasını yatay ve net şekilde ortalayın, sonra Oku düğmesine basın.';
-    } catch (err) {
-      ocrStatus.textContent = 'Kamera açılamadı: ' + (err.message || err);
-      ocrStart.disabled = false;
-    }
+    ocrFile.value = '';
+    ocrFile.click(); // telefonun kendi kamera uygulamasını açar
   });
 
-  ocrRead.addEventListener('click', async () => {
-    if (!ocrStream || !ocrVideo.videoWidth) {
-      ocrStatus.textContent = 'Kamera görüntüsü henüz hazır değil. Birkaç saniye sonra tekrar deneyin.';
-      return;
-    }
-    ocrRead.disabled = true;
+  ocrFile.addEventListener('change', async () => {
+    const file = ocrFile.files && ocrFile.files[0];
+    if (!file || ocrBusy) return;
+    ocrBusy = true;
+    ocrBox.hidden = false;
+    ocrCandidates.innerHTML = '';
+    ocrRetake.disabled = true;
+    ocrStatus.textContent = 'Fotoğraf işleniyor...';
     try {
+      const frame = await photoToFrame(file);
       const worker = await getOcrWorker();
-      const frame = captureOcrFrame();
       // 1. deneme: kontrastı gerilmiş gri ton — eşiklemeyi Tesseract'ın kendi Otsu'suna bırak
       let result = await worker.recognize(paintOcrFrame(frame));
-      let serial = normalizeSerial(result.data.text);
-      if (!serial) {
+      let candidates = extractCandidates(result.data.text);
+      if (!candidates.length) {
         // 2. deneme: Otsu ile siyah/beyaz; koyu zemin üstüne açık yazı (kazınmış kasa
         // etiketi gibi) ise ters çevir — Tesseract açık zeminde koyu yazı bekler
         ocrStatus.textContent = 'Tekrar deneniyor...';
@@ -391,37 +377,26 @@
           const bin = g > t ? 255 : 0;
           return invert ? 255 - bin : bin;
         }));
-        serial = normalizeSerial(result.data.text);
+        candidates = extractCandidates(result.data.text);
       }
-      if (serial) {
-        oldSerialInput.value = serial;
-        oldSerialInput.focus();
-        oldSerialInput.select();
-        ocrStatus.textContent = 'Okunan değer Eski PC Seri No alanına yazıldı. Kaydetmeden önce kontrol edin.';
-        if (navigator.vibrate) navigator.vibrate(100);
-        setTimeout(stopOcr, 1200);
+      if (candidates.length === 1) {
+        useSerial(candidates[0]);
+      } else if (candidates.length) {
+        showCandidates(candidates);
+        ocrStatus.textContent = 'Okunan adaylardan seri numarasını seçin:';
       } else {
-        ocrStatus.textContent = 'Seri numarası okunamadı. Daha yaklaşın, gerekirse ışığı (🔦) açın ve tekrar deneyin.';
-        ocrRead.disabled = false;
+        ocrStatus.textContent = 'Seri numarası okunamadı. Etikete yaklaşıp yazı net ve yatay olacak şekilde yeniden çekin.';
       }
     } catch (err) {
       ocrStatus.textContent = 'OCR hatası: ' + (err.message || err);
-      ocrRead.disabled = false;
+    } finally {
+      ocrBusy = false;
+      ocrRetake.disabled = false;
+      ocrFile.value = ''; // aynı dosya yeniden seçilebilsin diye sıfırla
     }
   });
 
-  ocrTorch.addEventListener('click', async () => {
-    if (!ocrStream) return;
-    const track = ocrStream.getVideoTracks()[0];
-    const on = ocrTorch.dataset.on === '1';
-    try {
-      await track.applyConstraints({ advanced: [{ torch: !on }] });
-      ocrTorch.dataset.on = on ? '0' : '1';
-    } catch (err) {
-      ocrStatus.textContent = 'Işık açılamadı: ' + (err.message || err);
-    }
-  });
-
-  ocrCancel.addEventListener('click', stopOcr);
+  ocrRetake.addEventListener('click', () => { if (!ocrBusy) ocrFile.click(); });
+  ocrCancel.addEventListener('click', closeOcr);
 </script>
 <%- include('layout-bottom') %>
