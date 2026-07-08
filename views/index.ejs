@@ -49,6 +49,7 @@
       <canvas id="ocr-canvas" hidden></canvas>
       <div class="action-row">
         <button type="button" id="ocr-read" class="btn-secondary">Oku</button>
+        <button type="button" id="ocr-torch" class="btn-secondary" hidden>🔦 Işık</button>
         <button type="button" id="ocr-cancel" class="btn-secondary">İptal</button>
       </div>
     </div>
@@ -189,6 +190,7 @@
   const ocrCanvas = document.getElementById('ocr-canvas');
   const ocrStart = document.getElementById('ocr-start');
   const ocrRead = document.getElementById('ocr-read');
+  const ocrTorch = document.getElementById('ocr-torch');
   const ocrCancel = document.getElementById('ocr-cancel');
   let ocrStream = null;
   let ocrWorker = null;
@@ -202,6 +204,8 @@
     ocrBox.hidden = true;
     ocrStart.disabled = false;
     ocrRead.disabled = true;
+    ocrTorch.hidden = true;
+    ocrTorch.dataset.on = '0';
   }
 
   function normalizeSerial(text) {
@@ -218,6 +222,18 @@
     return compact.length >= 4 ? compact : '';
   }
 
+  function histPercentile(hist, total, p) {
+    const target = total * p;
+    let cum = 0;
+    for (let i = 0; i < 256; i++) {
+      cum += hist[i];
+      if (cum >= target) return i;
+    }
+    return 255;
+  }
+
+  // Kılavuz bandını kırpar, gri tona çevirir ve %1-%99 persentil aralığına
+  // kontrast gerer (tek bir parlama noktası germeyi bozmasın diye min/max değil).
   function captureOcrFrame() {
     const videoWidth = ocrVideo.videoWidth;
     const videoHeight = ocrVideo.videoHeight;
@@ -227,22 +243,60 @@
       width: Math.round(videoWidth * 0.90),
       height: Math.round(videoHeight * 0.20)
     };
-    const scale = 2;
-    ocrCanvas.width = source.width * scale;
-    ocrCanvas.height = source.height * scale;
+    // OCR girişi ~1600 px genişlikte olsun; düşük çözünürlüklü kamerada daha çok büyüt
+    const scale = Math.min(4, Math.max(1.5, 1600 / source.width));
+    ocrCanvas.width = Math.round(source.width * scale);
+    ocrCanvas.height = Math.round(source.height * scale);
     const ctx = ocrCanvas.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(ocrVideo, source.x, source.y, source.width, source.height, 0, 0, ocrCanvas.width, ocrCanvas.height);
 
     const image = ctx.getImageData(0, 0, ocrCanvas.width, ocrCanvas.height);
-    for (let i = 0; i < image.data.length; i += 4) {
-      const gray = image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114;
-      const contrast = gray > 150 ? 255 : 0;
-      image.data[i] = contrast;
-      image.data[i + 1] = contrast;
-      image.data[i + 2] = contrast;
+    const total = ocrCanvas.width * ocrCanvas.height;
+    const gray = new Uint8ClampedArray(total);
+    const hist = new Uint32Array(256);
+    for (let i = 0, j = 0; j < total; i += 4, j++) {
+      const g = Math.round(image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114);
+      gray[j] = g;
+      hist[g]++;
     }
-    ctx.putImageData(image, 0, 0);
+    const lo = histPercentile(hist, total, 0.01);
+    const hi = Math.max(lo + 1, histPercentile(hist, total, 0.99));
+    for (let j = 0; j < total; j++) {
+      gray[j] = (gray[j] - lo) * 255 / (hi - lo); // Uint8ClampedArray 0-255'e kırpar
+    }
+    return { ctx, image, gray, total };
+  }
+
+  // Gri değerleri (istenirse bir dönüşümden geçirip) canvas'a basar, canvas'ı döndürür.
+  function paintOcrFrame(frame, transform) {
+    for (let j = 0, i = 0; j < frame.total; j++, i += 4) {
+      const v = transform ? transform(frame.gray[j]) : frame.gray[j];
+      frame.image.data[i] = v;
+      frame.image.data[i + 1] = v;
+      frame.image.data[i + 2] = v;
+    }
+    frame.ctx.putImageData(frame.image, 0, 0);
     return ocrCanvas;
+  }
+
+  // Otsu eşiği: sınıflar arası varyansı maksimize eden gri değer
+  function otsuThreshold(frame) {
+    const hist = new Uint32Array(256);
+    for (let j = 0; j < frame.total; j++) hist[frame.gray[j]]++;
+    let sum = 0;
+    for (let i = 0; i < 256; i++) sum += i * hist[i];
+    let sumB = 0, wB = 0, maxVar = 0, threshold = 127;
+    for (let i = 0; i < 256; i++) {
+      wB += hist[i];
+      if (!wB) continue;
+      const wF = frame.total - wB;
+      if (!wF) break;
+      sumB += i * hist[i];
+      const mB = sumB / wB, mF = (sum - sumB) / wF;
+      const between = wB * wF * (mB - mF) * (mB - mF);
+      if (between > maxVar) { maxVar = between; threshold = i; }
+    }
+    return threshold;
   }
 
   async function getOcrWorker() {
@@ -286,12 +340,25 @@
     ocrBox.hidden = false;
     ocrStatus.textContent = 'Kamera başlatılıyor...';
     try {
-      ocrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      // Yüksek çözünürlük şart: varsayılan 640x480'de etiket yazısı okunamayacak kadar küçük kalıyor
+      ocrStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          advanced: [{ focusMode: 'continuous' }] // desteklenmeyen cihazlar yok sayar
+        },
+        audio: false
+      });
       ocrVideo.srcObject = ocrStream;
       await new Promise(resolve => {
         if (ocrVideo.videoWidth) return resolve();
         ocrVideo.onloadedmetadata = () => resolve();
       });
+      const track = ocrStream.getVideoTracks()[0];
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      ocrTorch.hidden = !caps.torch;
+      ocrTorch.dataset.on = '0';
       ocrRead.disabled = false;
       ocrStatus.textContent = 'Eski PC seri numarasını yatay ve net şekilde ortalayın, sonra Oku düğmesine basın.';
     } catch (err) {
@@ -308,8 +375,24 @@
     ocrRead.disabled = true;
     try {
       const worker = await getOcrWorker();
-      const { data: { text } } = await worker.recognize(captureOcrFrame());
-      const serial = normalizeSerial(text);
+      const frame = captureOcrFrame();
+      // 1. deneme: kontrastı gerilmiş gri ton — eşiklemeyi Tesseract'ın kendi Otsu'suna bırak
+      let result = await worker.recognize(paintOcrFrame(frame));
+      let serial = normalizeSerial(result.data.text);
+      if (!serial) {
+        // 2. deneme: Otsu ile siyah/beyaz; koyu zemin üstüne açık yazı (kazınmış kasa
+        // etiketi gibi) ise ters çevir — Tesseract açık zeminde koyu yazı bekler
+        ocrStatus.textContent = 'Tekrar deneniyor...';
+        const t = otsuThreshold(frame);
+        let dark = 0;
+        for (let j = 0; j < frame.total; j++) if (frame.gray[j] <= t) dark++;
+        const invert = dark > frame.total / 2;
+        result = await worker.recognize(paintOcrFrame(frame, g => {
+          const bin = g > t ? 255 : 0;
+          return invert ? 255 - bin : bin;
+        }));
+        serial = normalizeSerial(result.data.text);
+      }
       if (serial) {
         oldSerialInput.value = serial;
         oldSerialInput.focus();
@@ -318,12 +401,24 @@
         if (navigator.vibrate) navigator.vibrate(100);
         setTimeout(stopOcr, 1200);
       } else {
-        ocrStatus.textContent = 'Seri numarası okunamadı. Daha yakın ve aydınlık çekip tekrar deneyin.';
+        ocrStatus.textContent = 'Seri numarası okunamadı. Daha yaklaşın, gerekirse ışığı (🔦) açın ve tekrar deneyin.';
         ocrRead.disabled = false;
       }
     } catch (err) {
       ocrStatus.textContent = 'OCR hatası: ' + (err.message || err);
       ocrRead.disabled = false;
+    }
+  });
+
+  ocrTorch.addEventListener('click', async () => {
+    if (!ocrStream) return;
+    const track = ocrStream.getVideoTracks()[0];
+    const on = ocrTorch.dataset.on === '1';
+    try {
+      await track.applyConstraints({ advanced: [{ torch: !on }] });
+      ocrTorch.dataset.on = on ? '0' : '1';
+    } catch (err) {
+      ocrStatus.textContent = 'Işık açılamadı: ' + (err.message || err);
     }
   });
 
