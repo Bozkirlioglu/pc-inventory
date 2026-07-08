@@ -2,6 +2,17 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
+## [Unreleased]
+
+### Eklenenler
+- Eski PC seri numarası için telefon kamerasından OCR ile metin okuma eklendi; okunan değer kaydetmeden önce formda kontrol edilebilir.
+- Personel CSV import formatı `Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No` olarak genişletildi.
+- Personel ve kayıt şemasına `new_pc_name`; personel şemasına ön-yüklenebilir `old_pc_serial` alanı eklendi.
+
+### Değişenler
+- Kayıt formunda otomatik dolan PC adı alanı artık arayüzde `Yeni PC Adı` olarak gösterilir; `old_pc_name` veritabanında korunur.
+- CSV importta boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır.
+
 ## [1.0.1] - 2026-07-03
 
 ### Eklenenler

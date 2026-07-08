@@ -35,7 +35,7 @@
 <div class="grid-2">
   <div class="card">
     <h2>CSV ile Personel Yükle</h2>
-    <p class="muted">Format: <code>Ad Soyad;Eski PC Adı;Departman;Desktop;Yeni PC Seri No</code> — noktalı virgül veya virgül ayraçlı, başlık satırı opsiyonel. Desktop için <code>1/0</code>, <code>evet/hayır</code> veya <code>true/false</code> yazılabilir. Mevcut kayıtlar atlanır.</p>
+    <p class="muted">Format: <code>Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No</code> — noktalı virgül veya virgül ayraçlı, başlık satırı opsiyonel. Boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır. Desktop için <code>1/0</code>, <code>evet/hayır</code> veya <code>true/false</code> yazılabilir. Mevcut kayıtlar atlanır.</p>
     <form method="post" action="/admin/import" enctype="multipart/form-data">
       <input type="file" name="csv" accept=".csv,text/csv" required>
       <button type="submit">Yükle</button>
@@ -51,8 +51,14 @@
       <label>Eski PC Adı
         <input name="old_pc_name">
       </label>
+      <label>Yeni PC Adı
+        <input name="new_pc_name">
+      </label>
       <label>Departman
         <input name="department">
+      </label>
+      <label>Eski PC Seri No
+        <input name="old_pc_serial" style="text-transform: uppercase">
       </label>
       <label>Yeni PC Seri No
         <input name="new_pc_serial" style="text-transform: uppercase">
@@ -94,7 +100,7 @@
   <h2>Personel Listesi (<%= personnel.length %>)</h2>
   <table>
     <thead>
-      <tr><th>#</th><th>Ad Soyad</th><th>Eski PC Adı</th><th>Departman</th><th>Desktop</th><th>Yeni Seri</th><th></th></tr>
+      <tr><th>#</th><th>Ad Soyad</th><th>Eski PC Adı</th><th>Yeni PC Adı</th><th>Departman</th><th>Desktop</th><th>Eski Seri</th><th>Yeni Seri</th><th></th></tr>
     </thead>
     <tbody>
       <% personnel.forEach(p => { %>
@@ -102,8 +108,10 @@
         <td><%= p.id %></td>
         <td><%= p.full_name %></td>
         <td><%= p.old_pc_name || '-' %></td>
+        <td><%= p.new_pc_name || '-' %></td>
         <td><%= p.department || '-' %></td>
         <td class="center"><input type="checkbox" class="checkbox" disabled <%= p.desktop ? 'checked' : '' %>></td>
+        <td><code><%= p.old_pc_serial || '-' %></code></td>
         <td><code><%= p.new_pc_serial || '-' %></code></td>
         <td>
           <form method="post" action="/admin/personel/<%= p.id %>/sil" class="inline"
@@ -114,7 +122,7 @@
       </tr>
       <% }) %>
       <% if (personnel.length === 0) { %>
-      <tr><td colspan="7" class="muted center">Personel listesi boş. Yukarıdan CSV yükleyin.</td></tr>
+      <tr><td colspan="9" class="muted center">Personel listesi boş. Yukarıdan CSV yükleyin.</td></tr>
       <% } %>
     </tbody>
   </table>

@@ -17,6 +17,9 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/vendor/html5-qrcode', express.static(path.join(__dirname, 'node_modules', 'html5-qrcode')));
+app.use('/vendor/tesseract.js', express.static(path.join(__dirname, 'node_modules', 'tesseract.js')));
+app.use('/vendor/tesseract-core', express.static(path.join(__dirname, 'node_modules', 'tesseract.js-core')));
+app.use('/vendor/tessdata', express.static(path.join(__dirname, 'node_modules', '@tesseract.js-data', 'eng')));
 app.set('trust proxy', 1); // reverse proxy (nginx/IIS) arkasinda dogru IP ve secure cookie icin
 
 const sessionStore = new MySQLStore({}, pool.pool); // mysql2/promise pool'un callback sarmalayicisi
@@ -172,9 +175,9 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
   }
 
   await pool.query(
-    `INSERT INTO entries (personnel_id, old_pc_name, old_pc_serial, new_pc_serial, desktop, todo, notes, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [p ? p.id : null, p ? p.old_pc_name : null, oldSerial, newSerial, desktop, todo, notes, req.session.user.id]);
+    `INSERT INTO entries (personnel_id, old_pc_name, new_pc_name, old_pc_serial, new_pc_serial, desktop, todo, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [p ? p.id : null, p ? p.old_pc_name : null, p ? p.new_pc_name : null, oldSerial, newSerial, desktop, todo, notes, req.session.user.id]);
   const who = p ? p.full_name : 'kullanıcısız kayıt';
   req.session.flash = { type: 'success', msg: `Kayıt oluşturuldu: ${who}${newSerial ? ' → ' + newSerial : ''}` };
   res.redirect('/');
@@ -193,8 +196,8 @@ app.get('/kayitlar', requireLogin, wrap(async (req, res) => {
   if (q) {
     const like = `%${q}%`;
     [rows] = await pool.query(`${ENTRY_SELECT}
-      WHERE p.full_name LIKE ? OR e.new_pc_serial LIKE ? OR e.old_pc_serial LIKE ? OR e.old_pc_name LIKE ?
-      ORDER BY e.created_at DESC`, [like, like, like, like]);
+      WHERE p.full_name LIKE ? OR e.new_pc_serial LIKE ? OR e.old_pc_serial LIKE ? OR e.old_pc_name LIKE ? OR e.new_pc_name LIKE ?
+      ORDER BY e.created_at DESC`, [like, like, like, like, like]);
   } else {
     [rows] = await pool.query(`${ENTRY_SELECT} ORDER BY e.created_at DESC`);
   }
@@ -210,7 +213,7 @@ app.post('/kayitlar/:id/sil', requireAdmin, wrap(async (req, res) => {
 // --- CSV export ---
 app.get('/kayitlar/export', requireLogin, wrap(async (req, res) => {
   const [rows] = await pool.query(`
-    SELECT e.id, p.full_name, p.department, e.old_pc_name, e.old_pc_serial, e.new_pc_serial,
+    SELECT e.id, p.full_name, p.department, e.old_pc_name, e.new_pc_name, e.old_pc_serial, e.new_pc_serial,
            e.desktop, e.todo, e.notes, u.username AS created_by,
            DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i') AS created_at
     FROM entries e
@@ -218,8 +221,8 @@ app.get('/kayitlar/export', requireLogin, wrap(async (req, res) => {
     JOIN app_users u ON u.id = e.created_by
     ORDER BY e.created_at DESC`);
   const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-  const header = 'ID;Kullanici;Departman;Eski PC Adi;Eski Seri No;Yeni Seri No;Desktop;#TODO;Not;Kaydeden;Tarih';
-  const lines = rows.map(r => [r.id, r.full_name, r.department, r.old_pc_name, r.old_pc_serial,
+  const header = 'ID;Kullanici;Departman;Eski PC Adi;Yeni PC Adi;Eski Seri No;Yeni Seri No;Desktop;#TODO;Not;Kaydeden;Tarih';
+  const lines = rows.map(r => [r.id, r.full_name, r.department, r.old_pc_name, r.new_pc_name, r.old_pc_serial,
     r.new_pc_serial, r.desktop ? 1 : 0, r.todo, r.notes, r.created_by, r.created_at].map(esc).join(';'));
   const csv = '﻿' + [header, ...lines].join('\r\n'); // BOM: Excel'de Türkçe karakterler için
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -257,15 +260,16 @@ app.post('/admin/kurallar', requireAdmin, wrap(async (req, res) => {
 }));
 
 app.post('/admin/personel', requireAdmin, wrap(async (req, res) => {
-  const { full_name, old_pc_name, department, new_pc_serial } = req.body;
+  const { full_name, old_pc_name, new_pc_name, department, old_pc_serial, new_pc_serial } = req.body;
   if (!(full_name || '').trim()) {
     req.session.flash = { type: 'error', msg: 'Ad soyad zorunludur.' };
     return res.redirect('/admin');
   }
   try {
-    await pool.query('INSERT INTO personnel (full_name, old_pc_name, department, desktop, new_pc_serial) VALUES (?, ?, ?, ?, ?)',
-      [full_name.trim(), (old_pc_name || '').trim() || null, (department || '').trim() || null,
-       req.body.desktop ? 1 : 0, (new_pc_serial || '').trim().toUpperCase() || null]);
+    await pool.query(
+      'INSERT INTO personnel (full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [full_name.trim(), (old_pc_name || '').trim() || null, (new_pc_name || '').trim() || null, (department || '').trim() || null,
+       req.body.desktop ? 1 : 0, (old_pc_serial || '').trim().toUpperCase() || null, (new_pc_serial || '').trim().toUpperCase() || null]);
     req.session.flash = { type: 'success', msg: 'Personel eklendi.' };
   } catch (e) {
     if (e.code !== 'ER_DUP_ENTRY') throw e;
@@ -285,7 +289,8 @@ app.post('/admin/personel/:id/sil', requireAdmin, wrap(async (req, res) => {
   res.redirect('/admin');
 }));
 
-// CSV formatı: full_name;old_pc_name;department;desktop;new_pc_serial  (; veya , ayraçlı, başlık satırı opsiyonel)
+// CSV formati: full_name;old_pc_name;new_pc_name;department;desktop;old_pc_serial;new_pc_serial
+// (; veya , ayiracli, baslik satiri opsiyonel). Bos alanlar importu durdurmaz.
 // desktop: 1/0, true/false, evet/hayır, x kabul edilir
 app.post('/admin/import', requireAdmin, upload.single('csv'), wrap(async (req, res) => {
   if (!req.file) {
@@ -311,11 +316,11 @@ app.post('/admin/import', requireAdmin, upload.single('csv'), wrap(async (req, r
     for (const r of records) {
       const name = (r[0] || '').trim();
       if (!name) { skipped++; continue; }
-      const desktop = /^(1|true|evet|x)$/i.test((r[3] || '').trim()) ? 1 : 0;
+      const desktop = /^(1|true|evet|x)$/i.test((r[4] || '').trim()) ? 1 : 0;
       const [result] = await conn.query(
-        'INSERT IGNORE INTO personnel (full_name, old_pc_name, department, desktop, new_pc_serial) VALUES (?, ?, ?, ?, ?)',
-        [name, (r[1] || '').trim() || null, (r[2] || '').trim() || null,
-         desktop, (r[4] || '').trim().toUpperCase() || null]);
+        'INSERT IGNORE INTO personnel (full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [name, (r[1] || '').trim() || null, (r[2] || '').trim() || null, (r[3] || '').trim() || null,
+         desktop, (r[5] || '').trim().toUpperCase() || null, (r[6] || '').trim().toUpperCase() || null]);
       result.affectedRows ? added++ : skipped++;
     }
     await conn.commit();

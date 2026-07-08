@@ -42,8 +42,10 @@ async function init() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       full_name VARCHAR(150) NOT NULL,
       old_pc_name VARCHAR(100) NULL,
+      new_pc_name VARCHAR(100) NULL,
       department VARCHAR(100) NULL,
       desktop TINYINT(1) NOT NULL DEFAULT 0,
+      old_pc_serial VARCHAR(64) NULL,
       new_pc_serial VARCHAR(64) NULL,
       UNIQUE KEY uq_person (full_name, old_pc_name)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci`);
@@ -53,6 +55,7 @@ async function init() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       personnel_id INT NULL,
       old_pc_name VARCHAR(100) NULL,
+      new_pc_name VARCHAR(100) NULL,
       old_pc_serial VARCHAR(64) NULL,
       new_pc_serial VARCHAR(64) NULL,
       desktop TINYINT(1) NOT NULL DEFAULT 0,
@@ -76,22 +79,20 @@ async function init() {
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci`);
 
   // --- Eski semadan gecis (idempotent) ---
-  // personnel.old_pc_serial kaldirildi: eski seri no artik degisim aninda formda girilir,
-  // personelle onceden yuklenen bilgi old_pc_name oldu.
-  if (await columnInfo('personnel', 'old_pc_serial')) {
-    if (await indexExists('personnel', 'uq_person')) {
-      await pool.query('ALTER TABLE personnel DROP INDEX uq_person');
-    }
-    await pool.query('ALTER TABLE personnel DROP COLUMN old_pc_serial');
-  }
   if (!(await columnInfo('personnel', 'old_pc_name'))) {
     await pool.query('ALTER TABLE personnel ADD COLUMN old_pc_name VARCHAR(100) NULL AFTER full_name');
+  }
+  if (!(await columnInfo('personnel', 'new_pc_name'))) {
+    await pool.query('ALTER TABLE personnel ADD COLUMN new_pc_name VARCHAR(100) NULL AFTER old_pc_name');
   }
   if (!(await indexExists('personnel', 'uq_person'))) {
     await pool.query('ALTER TABLE personnel ADD UNIQUE KEY uq_person (full_name, old_pc_name)');
   }
   if (!(await columnInfo('entries', 'old_pc_name'))) {
     await pool.query('ALTER TABLE entries ADD COLUMN old_pc_name VARCHAR(100) NULL AFTER personnel_id');
+  }
+  if (!(await columnInfo('entries', 'new_pc_name'))) {
+    await pool.query('ALTER TABLE entries ADD COLUMN new_pc_name VARCHAR(100) NULL AFTER old_pc_name');
   }
   // Alanlar varsayilan olarak zorunlu olmadigi icin NULL'a izin ver
   const pid = await columnInfo('entries', 'personnel_id');
@@ -113,8 +114,11 @@ async function init() {
   if (!(await columnInfo('personnel', 'desktop'))) {
     await pool.query('ALTER TABLE personnel ADD COLUMN desktop TINYINT(1) NOT NULL DEFAULT 0 AFTER department');
   }
+  if (!(await columnInfo('personnel', 'old_pc_serial'))) {
+    await pool.query('ALTER TABLE personnel ADD COLUMN old_pc_serial VARCHAR(64) NULL AFTER desktop');
+  }
   if (!(await columnInfo('personnel', 'new_pc_serial'))) {
-    await pool.query('ALTER TABLE personnel ADD COLUMN new_pc_serial VARCHAR(64) NULL AFTER desktop');
+    await pool.query('ALTER TABLE personnel ADD COLUMN new_pc_serial VARCHAR(64) NULL AFTER old_pc_serial');
   }
 
   // Kural satirlarini tohumla (varsayilan: hicbir alan zorunlu degil, desen yok)

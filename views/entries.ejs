@@ -12,7 +12,7 @@
   <table>
     <thead>
       <tr>
-        <th>#</th><th>Kullanıcı</th><th>Departman</th><th>Eski PC Adı</th><th>Eski Seri</th>
+        <th>#</th><th>Kullanıcı</th><th>Departman</th><th>Eski PC Adı</th><th>Yeni PC Adı</th><th>Eski Seri</th>
         <th>Yeni Seri</th><th>Desktop</th><th>#TODO</th><th>Not</th><th>Kaydeden</th><th>Tarih</th>
         <% if (user.role === 'admin') { %><th></th><% } %>
       </tr>
@@ -24,6 +24,7 @@
         <td><%= r.full_name || '-' %></td>
         <td><%= r.department || '-' %></td>
         <td><%= r.old_pc_name || '-' %></td>
+        <td><%= r.new_pc_name || '-' %></td>
         <td><code><%= r.old_pc_serial || '-' %></code></td>
         <td><code><%= r.new_pc_serial || '-' %></code></td>
         <td class="center"><input type="checkbox" class="checkbox" disabled <%= r.desktop ? 'checked' : '' %>></td>
@@ -42,7 +43,7 @@
       </tr>
       <% }) %>
       <% if (rows.length === 0) { %>
-      <tr><td colspan="12" class="muted center">Kayıt bulunamadı.</td></tr>
+      <tr><td colspan="13" class="muted center">Kayıt bulunamadı.</td></tr>
       <% } %>
     </tbody>
   </table>

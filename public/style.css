@@ -148,6 +148,20 @@ tr.row-desktop td, tr.row-desktop:hover td { background: #77DD77; }
 }
 #scanner video { width: 100% !important; display: block; }
 .btn-block { display: block; width: 100%; text-align: center; padding: 10px; margin-top: 8px; }
+#ocr-box { margin-bottom: 12px; }
+#ocr-video {
+  width: 100%;
+  display: block;
+  border: 2px solid #4361ee;
+  border-radius: 8px;
+  background: #111;
+}
+.action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.action-row button { flex: 1; text-align: center; }
 
 /* Mobil */
 @media (max-width: 600px) {
