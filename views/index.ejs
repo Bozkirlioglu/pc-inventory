@@ -201,17 +201,21 @@
     ocrVideo.srcObject = null;
     ocrBox.hidden = true;
     ocrStart.disabled = false;
-    ocrRead.disabled = false;
+    ocrRead.disabled = true;
   }
 
   function normalizeSerial(text) {
-    const candidates = String(text || '')
+    const cleaned = String(text || '')
       .toUpperCase()
+      .replace(/\b(SERIAL|SERIALNO|SERIALNUMBER|SERI|SERI NO|S\/N|SN)\b/g, ' ');
+    const candidates = cleaned
       .split(/\s+/)
       .map(part => part.replace(/[^A-Z0-9\-_/]/g, ''))
       .filter(part => /[A-Z0-9]/.test(part) && part.length >= 4)
       .sort((a, b) => b.length - a.length);
-    return candidates[0] || '';
+    if (candidates[0]) return candidates[0];
+    const compact = cleaned.replace(/[^A-Z0-9\-_/]/g, '');
+    return compact.length >= 4 ? compact : '';
   }
 
   function captureOcrFrame() {
@@ -278,12 +282,18 @@
     await stopScanner();
     await stopOcr();
     ocrStart.disabled = true;
+    ocrRead.disabled = true;
     ocrBox.hidden = false;
     ocrStatus.textContent = 'Kamera başlatılıyor...';
     try {
       ocrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
       ocrVideo.srcObject = ocrStream;
-      ocrStatus.textContent = 'Seri numarasını yatay ve net şekilde ortalayın, sonra Oku düğmesine basın.';
+      await new Promise(resolve => {
+        if (ocrVideo.videoWidth) return resolve();
+        ocrVideo.onloadedmetadata = () => resolve();
+      });
+      ocrRead.disabled = false;
+      ocrStatus.textContent = 'Eski PC seri numarasını yatay ve net şekilde ortalayın, sonra Oku düğmesine basın.';
     } catch (err) {
       ocrStatus.textContent = 'Kamera açılamadı: ' + (err.message || err);
       ocrStart.disabled = false;
@@ -291,7 +301,10 @@
   });
 
   ocrRead.addEventListener('click', async () => {
-    if (!ocrStream || !ocrVideo.videoWidth) return;
+    if (!ocrStream || !ocrVideo.videoWidth) {
+      ocrStatus.textContent = 'Kamera görüntüsü henüz hazır değil. Birkaç saniye sonra tekrar deneyin.';
+      return;
+    }
     ocrRead.disabled = true;
     try {
       const worker = await getOcrWorker();
@@ -299,9 +312,11 @@
       const serial = normalizeSerial(text);
       if (serial) {
         oldSerialInput.value = serial;
-        ocrStatus.textContent = 'Okundu. Kaydetmeden önce seri numarasını kontrol edin.';
+        oldSerialInput.focus();
+        oldSerialInput.select();
+        ocrStatus.textContent = 'Okunan değer Eski PC Seri No alanına yazıldı. Kaydetmeden önce kontrol edin.';
         if (navigator.vibrate) navigator.vibrate(100);
-        setTimeout(stopOcr, 700);
+        setTimeout(stopOcr, 1200);
       } else {
         ocrStatus.textContent = 'Seri numarası okunamadı. Daha yakın ve aydınlık çekip tekrar deneyin.';
         ocrRead.disabled = false;
