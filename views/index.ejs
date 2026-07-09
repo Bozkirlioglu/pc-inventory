@@ -18,14 +18,6 @@
     <label>Yeni PC Adı
       <input id="new-pcname" readonly placeholder="Kullanıcı seçince otomatik dolar" class="readonly">
     </label>
-    <label>Eski PC Seri No <% if (rules.old_pc_serial.required) { %><span class="req">*</span><% } %>
-      <div class="input-with-btn">
-        <input name="old_pc_serial" id="old-serial" placeholder="Elle girin veya metin okuyun"
-               style="text-transform: uppercase" <% if (rules.old_pc_serial.required) { %>required<% } %>>
-        <button type="button" id="ocr-start" title="Kameradan metin oku">📷 Metin Oku</button>
-      </div>
-    </label>
-    <input type="file" id="ocr-file" accept="image/*" capture="environment" hidden>
     <label>Yeni PC Seri No <% if (rules.new_pc_serial.required) { %><span class="req">*</span><% } %>
       <div class="input-with-btn">
         <input name="new_pc_serial" id="new-serial" placeholder="Elle girin veya okutun"
@@ -35,6 +27,14 @@
       </div>
     </label>
     <input type="file" id="barcode-file" accept="image/*" capture="environment" hidden>
+    <label>Eski PC Seri No <% if (rules.old_pc_serial.required) { %><span class="req">*</span><% } %>
+      <div class="input-with-btn">
+        <input name="old_pc_serial" id="old-serial" placeholder="Elle girin veya metin okuyun"
+               style="text-transform: uppercase" <% if (rules.old_pc_serial.required) { %>required<% } %>>
+        <button type="button" id="ocr-start" title="Kameradan metin oku">📷 Metin Oku</button>
+      </div>
+    </label>
+    <input type="file" id="ocr-file" accept="image/*" capture="environment" hidden>
     <div id="scanner-box" hidden>
       <p class="muted center" id="scan-target-label"></p>
       <div id="scanner"></div>
