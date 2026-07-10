@@ -124,8 +124,15 @@ input.checkbox { width: auto; display: inline-block; margin: 0; transform: scale
 table input:not(.checkbox) { margin-top: 0; }
 .checkbox-label { display: flex; align-items: center; gap: 8px; }
 
-/* Desktop kayıtları yeşil vurgulanır */
+/* Cihaz tipine göre satır vurgusu: Desktop yeşil, Notebook camgöbeği (VDI beyaz kalır) */
 tr.row-desktop td, tr.row-desktop:hover td { background: #77DD77; }
+tr.row-notebook td, tr.row-notebook:hover td { background: #24ffff; }
+
+/* Cihaz tipi radio grubu */
+fieldset.device-type { border: 1px solid #d6dae2; border-radius: 6px; padding: 8px 12px; margin: 10px 0; }
+fieldset.device-type legend { font-size: 13px; color: #555; padding: 0 4px; }
+.radio-inline { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; }
+.radio-inline input { width: auto; margin: 0; transform: scale(1.2); }
 
 /* Barkod okuma */
 .input-with-btn { display: flex; gap: 8px; margin-top: 4px; }

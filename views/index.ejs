@@ -9,7 +9,7 @@
         <% personnel.forEach(p => { %>
           <option data-id="<%= p.id %>" data-newpcname="<%= p.new_pc_name || '' %>"
                   data-oldserial="<%= p.old_pc_serial || '' %>"
-                  data-desktop="<%= p.desktop ? 1 : 0 %>" data-newserial="<%= p.new_pc_serial || '' %>"
+                  data-desktop="<%= p.desktop %>" data-newserial="<%= p.new_pc_serial || '' %>"
                   value="<%= p.full_name %><%= p.old_pc_name ? ' — ' + p.old_pc_name : '' %>"></option>
         <% }) %>
       </datalist>
@@ -50,9 +50,12 @@
         <button type="button" id="ocr-cancel" class="btn-secondary">Kapat</button>
       </div>
     </div>
-    <label class="checkbox-label">
-      <input type="checkbox" name="desktop" id="desktop" class="checkbox" value="1"> Desktop
-    </label>
+    <fieldset class="device-type">
+      <legend>Cihaz Tipi</legend>
+      <label class="radio-inline"><input type="radio" name="desktop" value="D"> Desktop</label>
+      <label class="radio-inline"><input type="radio" name="desktop" value="N" checked> Notebook</label>
+      <label class="radio-inline"><input type="radio" name="desktop" value="V"> VDI</label>
+    </fieldset>
     <label>#TODO <% if (rules.todo && rules.todo.required) { %><span class="req">*</span><% } else { %><small>(opsiyonel)</small><% } %>
       <textarea name="todo" rows="3" placeholder="Yapılacaklar..." <% if (rules.todo && rules.todo.required) { %>required<% } %>></textarea>
     </label>
@@ -73,17 +76,25 @@
   const newPcName = document.getElementById('new-pcname');
   const oldSerialInput = document.getElementById('old-serial');
   const newSerialInput = document.getElementById('new-serial');
-  const desktopCb = document.getElementById('desktop');
+  const deviceRadios = document.querySelectorAll('input[name="desktop"]');
   const formCard = document.querySelector('.card');
   const options = document.querySelectorAll('#personnel-list option');
 
-  // Desktop işaretliyse arka plan yeşile döner
-  function updateDesktopBg() {
-    const bg = desktopCb.checked ? '#77DD77' : '';
+  // Cihaz tipine göre arka plan: Desktop yeşil, Notebook camgöbeği, VDI beyaz
+  const DEVICE_BG = { D: '#77DD77', N: '#24ffff', V: '' };
+  function currentDevice() {
+    const r = document.querySelector('input[name="desktop"]:checked');
+    return r ? r.value : 'N';
+  }
+  function setDevice(code) {
+    deviceRadios.forEach(r => { r.checked = (r.value === code); });
+  }
+  function updateDeviceBg() {
+    const bg = DEVICE_BG[currentDevice()] || '';
     document.body.style.background = bg;
     formCard.style.background = bg;
   }
-  desktopCb.addEventListener('change', updateDesktopBg);
+  deviceRadios.forEach(r => r.addEventListener('change', updateDeviceBg));
 
   search.addEventListener('input', () => {
     hiddenId.value = '';
@@ -95,8 +106,8 @@
         hiddenId.value = opt.dataset.id;
         newPcName.value = opt.dataset.newpcname;
         // Personelle önceden yüklenmiş alanlar formu doldurur
-        desktopCb.checked = opt.dataset.desktop === '1';
-        updateDesktopBg();
+        setDevice(opt.dataset.desktop || 'N');
+        updateDeviceBg();
         if (opt.dataset.oldserial) oldSerialInput.value = opt.dataset.oldserial;
         if (opt.dataset.newserial) newSerialInput.value = opt.dataset.newserial;
         break;

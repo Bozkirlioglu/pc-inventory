@@ -122,6 +122,16 @@ async function getRules() {
   return Object.fromEntries(rows.map(r => [r.field_name, r]));
 }
 
+// Cihaz tipi: 'D' Desktop, 'N' Notebook, 'V' VDI. Form/CSV girdisini normalize eder.
+// Geriye donuk uyum: eski 1/true/evet/x -> Desktop, 0/false/hayir/bos -> Notebook.
+const DEVICE_LABELS = { D: 'Desktop', N: 'Notebook', V: 'VDI' };
+function normalizeDevice(raw) {
+  const s = String(raw == null ? '' : raw).trim().toUpperCase();
+  if (s === 'D' || s === 'DESKTOP' || /^(1|TRUE|EVET|X)$/.test(s)) return 'D';
+  if (s === 'V' || s === 'VDI') return 'V';
+  return 'N'; // N/NOTEBOOK ve tanimsiz/0/false/hayir varsayilani
+}
+
 // --- Ana sayfa: kayıt formu ---
 app.get('/', requireLogin, wrap(async (req, res) => {
   const [personnel] = await pool.query('SELECT * FROM personnel ORDER BY full_name');
@@ -133,7 +143,7 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
   const rules = await getRules();
   const oldSerial = (req.body.old_pc_serial || '').trim().toUpperCase() || null;
   const newSerial = (req.body.new_pc_serial || '').trim().toUpperCase() || null;
-  const desktop = req.body.desktop ? 1 : 0;
+  const desktop = normalizeDevice(req.body.desktop);
   const todo = (req.body.todo || '').trim() || null;
   const notes = (req.body.notes || '').trim() || null;
 
@@ -221,9 +231,9 @@ app.get('/kayitlar/export', requireLogin, wrap(async (req, res) => {
     JOIN app_users u ON u.id = e.created_by
     ORDER BY e.created_at DESC`);
   const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-  const header = 'ID;Kullanici;Departman;Eski PC Adi;Yeni PC Adi;Eski Seri No;Yeni Seri No;Desktop;#TODO;Not;Kaydeden;Tarih';
+  const header = 'ID;Kullanici;Departman;Eski PC Adi;Yeni PC Adi;Eski Seri No;Yeni Seri No;Cihaz Tipi;#TODO;Not;Kaydeden;Tarih';
   const lines = rows.map(r => [r.id, r.full_name, r.department, r.old_pc_name, r.new_pc_name, r.old_pc_serial,
-    r.new_pc_serial, r.desktop ? 1 : 0, r.todo, r.notes, r.created_by, r.created_at].map(esc).join(';'));
+    r.new_pc_serial, DEVICE_LABELS[r.desktop] || '', r.todo, r.notes, r.created_by, r.created_at].map(esc).join(';'));
   const csv = '﻿' + [header, ...lines].join('\r\n'); // BOM: Excel'de Türkçe karakterler için
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="envanter-${new Date().toISOString().slice(0, 10)}.csv"`);
@@ -269,7 +279,7 @@ app.post('/admin/personel', requireAdmin, wrap(async (req, res) => {
     await pool.query(
       'INSERT INTO personnel (full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [full_name.trim(), (old_pc_name || '').trim() || null, (new_pc_name || '').trim() || null, (department || '').trim() || null,
-       req.body.desktop ? 1 : 0, (old_pc_serial || '').trim().toUpperCase() || null, (new_pc_serial || '').trim().toUpperCase() || null]);
+       normalizeDevice(req.body.desktop), (old_pc_serial || '').trim().toUpperCase() || null, (new_pc_serial || '').trim().toUpperCase() || null]);
     req.session.flash = { type: 'success', msg: 'Personel eklendi.' };
   } catch (e) {
     if (e.code !== 'ER_DUP_ENTRY') throw e;
@@ -316,7 +326,7 @@ app.post('/admin/import', requireAdmin, upload.single('csv'), wrap(async (req, r
     for (const r of records) {
       const name = (r[0] || '').trim();
       if (!name) { skipped++; continue; }
-      const desktop = /^(1|true|evet|x)$/i.test((r[4] || '').trim()) ? 1 : 0;
+      const desktop = normalizeDevice(r[4]);
       const [result] = await conn.query(
         'INSERT IGNORE INTO personnel (full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [name, (r[1] || '').trim() || null, (r[2] || '').trim() || null, (r[3] || '').trim() || null,

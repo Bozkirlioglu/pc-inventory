@@ -2,6 +2,18 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
+## [Yayınlanmamış]
+
+### Değişenler
+- **Desktop** alanı üç değerli **cihaz tipine** dönüştü: **D** (Desktop), **N** (Notebook), **V** (VDI).
+  Kayıt ve tekil personel formlarında checkbox yerine radio ile seçilir. Seçime göre renklenir:
+  Desktop yeşil (`#77DD77`), Notebook camgöbeği (`#24ffff`), VDI beyaz. Kayıt listesinde satırlar
+  aynı renklerle vurgulanır, Cihaz Tipi sütunu etiketi (Desktop/Notebook/VDI) gösterir.
+- Veritabanı: `desktop` kolonu `TINYINT(1)` yerine `ENUM('D','N','V')`; eski kayıtlar otomatik
+  taşınır (`1`→Desktop, `0`→Notebook).
+- CSV import Desktop sütununda `D`/`N`/`V` (ve geriye dönük `1`/`0`/`evet`/`hayır`) kabul eder;
+  export'ta sütun başlığı **Cihaz Tipi**, değerler etiket olarak yazılır.
+
 ## [1.0.3] - 2026-07-09
 
 ### Eklenenler

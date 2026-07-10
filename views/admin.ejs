@@ -35,7 +35,7 @@
 <div class="grid-2">
   <div class="card">
     <h2>CSV ile Personel Yükle</h2>
-    <p class="muted">Format: <code>Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No</code> — noktalı virgül veya virgül ayraçlı, başlık satırı opsiyonel. Boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır. Desktop için <code>1/0</code>, <code>evet/hayır</code> veya <code>true/false</code> yazılabilir. Mevcut kayıtlar atlanır.</p>
+    <p class="muted">Format: <code>Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No</code> — noktalı virgül veya virgül ayraçlı, başlık satırı opsiyonel. Boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır. Desktop sütununa cihaz tipi <code>D</code> (Desktop), <code>N</code> (Notebook) veya <code>V</code> (VDI) yazılır; boş/tanımsız Notebook sayılır (eski <code>1</code>=Desktop, <code>0</code>=Notebook de kabul edilir). Mevcut kayıtlar atlanır.</p>
     <form method="post" action="/admin/import" enctype="multipart/form-data">
       <input type="file" name="csv" accept=".csv,text/csv" required>
       <button type="submit">Yükle</button>
@@ -63,9 +63,12 @@
       <label>Yeni PC Seri No
         <input name="new_pc_serial" style="text-transform: uppercase">
       </label>
-      <label class="checkbox-label">
-        <input type="checkbox" name="desktop" class="checkbox" value="1"> Desktop
-      </label>
+      <fieldset class="device-type">
+        <legend>Cihaz Tipi</legend>
+        <label class="radio-inline"><input type="radio" name="desktop" value="D"> Desktop</label>
+        <label class="radio-inline"><input type="radio" name="desktop" value="N" checked> Notebook</label>
+        <label class="radio-inline"><input type="radio" name="desktop" value="V"> VDI</label>
+      </fieldset>
       <button type="submit">Ekle</button>
     </form>
   </div>
@@ -100,7 +103,7 @@
   <h2>Personel Listesi (<%= personnel.length %>)</h2>
   <table>
     <thead>
-      <tr><th>#</th><th>Ad Soyad</th><th>Eski PC Adı</th><th>Yeni PC Adı</th><th>Departman</th><th>Desktop</th><th>Eski Seri</th><th>Yeni Seri</th><th></th></tr>
+      <tr><th>#</th><th>Ad Soyad</th><th>Eski PC Adı</th><th>Yeni PC Adı</th><th>Departman</th><th>Cihaz Tipi</th><th>Eski Seri</th><th>Yeni Seri</th><th></th></tr>
     </thead>
     <tbody>
       <% personnel.forEach(p => { %>
@@ -110,7 +113,7 @@
         <td><%= p.old_pc_name || '-' %></td>
         <td><%= p.new_pc_name || '-' %></td>
         <td><%= p.department || '-' %></td>
-        <td class="center"><input type="checkbox" class="checkbox" disabled <%= p.desktop ? 'checked' : '' %>></td>
+        <td class="center"><%= { D: 'Desktop', N: 'Notebook', V: 'VDI' }[p.desktop] || '' %></td>
         <td><code><%= p.old_pc_serial || '-' %></code></td>
         <td><code><%= p.new_pc_serial || '-' %></code></td>
         <td>

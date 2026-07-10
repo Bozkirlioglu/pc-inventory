@@ -4,7 +4,7 @@ PC kurulum ve değişim (rollout) projelerinde sahada envanter kaydı toplamak i
 mobil uyumlu, internete açık çalışabilen hafif bir web uygulaması.
 
 Teknisyen telefonundan veya bilgisayarından giriş yapar, listeden kullanıcıyı seçer
-(yeni PC adı, desktop bilgisi ve seri numarası bilgileri otomatik gelir), eski PC seri
+(yeni PC adı, cihaz tipi ve seri numarası bilgileri otomatik gelir), eski PC seri
 numarasını elle yazar veya **etiketin fotoğrafını çekip OCR ile okutur**, yeni PC seri
 numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve kaydeder.
 
@@ -12,16 +12,16 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
 
 ### Kayıt toplama
 - 📋 Arama destekli kullanıcı seçimi — personel listesi önceden yüklenir, teknisyen isim yazarak bulur
-- 🖥️ Yeni PC adı, desktop işareti ve (önceden yüklendiyse) eski/yeni PC seri numarası kullanıcı seçilince otomatik dolar
+- 🖥️ Yeni PC adı, cihaz tipi ve (önceden yüklendiyse) eski/yeni PC seri numarası kullanıcı seçilince otomatik dolar
 - 📷 **Eski PC seri no için fotoğraftan OCR** — telefonun kamera uygulamasıyla etiket fotoğrafı çekilir, seri numarası tarayıcıda okunur; birden fazla aday bulunursa doğru değer dokunarak seçilir, sonuç formda düzenlenebilir
 - 📷 **Barkodla yeni PC seri no girişi** — telefon kamerasıyla Code 128, Code 39/93, EAN, UPC, ITF, QR ve DataMatrix okur; canlı tarayıcının tutmadığı zor barkodlar için 🖼️ Foto ile fotoğraf çekip çözme yedeği vardır; elle giriş her zaman mümkün
-- ✅ **Desktop** işaretli kayıtlar listede yeşil (`#77DD77`) arka planla vurgulanır; formda checkbox işaretlenince sayfa arka planı da yeşile döner
+- ✅ **Cihaz tipi** (Desktop / Notebook / VDI) radio ile seçilir; seçime göre form ve kayıt listesi renklenir — Desktop yeşil (`#77DD77`), Notebook camgöbeği (`#24ffff`), VDI beyaz
 - 📝 **#TODO** alanı — kayıt başına çok satırlı yapılacaklar notu (Not alanının üzerinde)
 - 🔁 Yeni seri numarasında mükerrer kayıt engeli
 - 📱 Mobil uyumlu arayüz — saha kullanımı için tasarlandı
 
 ### Yönetim
-- 📥 Personel listesini CSV ile toplu yükleme (`Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No` — `;` veya `,` ayraçlı, mükerrerler otomatik atlanır; boş alanlar yüklemeyi durdurmaz; Desktop sütununda `1/0`, `evet/hayır` veya `true/false` yazılabilir)
+- 📥 Personel listesini CSV ile toplu yükleme (`Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No` — `;` veya `,` ayraçlı, mükerrerler otomatik atlanır; boş alanlar yüklemeyi durdurmaz; Desktop sütununa cihaz tipi `D`/`N`/`V` yazılır, boş=Notebook — eski `1`/`0` de kabul edilir)
 - ⚙️ **Ayarlanabilir doğrulama kuralları**: hangi alanların zorunlu olduğu ve biçim desenleri (regex) kod değişikliği gerektirmeden yönetim panelinden belirlenir; varsayılan olarak hiçbir alan zorunlu değildir
 - 👥 Rol tabanlı hesaplar: **admin** (yönetim + silme) ve **teknisyen** (kayıt girme/listeleme)
 - 🔍 Kayıtlarda isim, PC adı veya seri no ile arama
@@ -76,7 +76,7 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
    (`Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No`).
 2. Alan zorunluluklarını ve biçim desenlerini **Yönetim → Alan Kuralları**'ndan ayarlayın.
 3. Teknisyen hesaplarını Yönetim sayfasından açın.
-4. **Yeni Kayıt** sayfasında kullanıcıyı seçin — yeni PC adı, desktop işareti ve seri no bilgileri
+4. **Yeni Kayıt** sayfasında kullanıcıyı seçin — yeni PC adı, cihaz tipi ve seri no bilgileri
    (CSV'de yüklendiyse) otomatik dolar. Eski seri numarasını elle veya 📷 Metin Oku ile
    etiketin fotoğrafını çekerek, yeni seri numarasını elle veya 📷 Okut butonuyla barkod
    okutarak girin (barkod tutmuyorsa 🖼️ Foto ile fotoğraf çekip çözün); gerekiyorsa #TODO

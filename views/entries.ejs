@@ -13,13 +13,13 @@
     <thead>
       <tr>
         <th>#</th><th>Kullanıcı</th><th>Departman</th><th>Eski PC Adı</th><th>Yeni PC Adı</th><th>Eski Seri</th>
-        <th>Yeni Seri</th><th>Desktop</th><th>#TODO</th><th>Not</th><th>Kaydeden</th><th>Tarih</th>
+        <th>Yeni Seri</th><th>Cihaz Tipi</th><th>#TODO</th><th>Not</th><th>Kaydeden</th><th>Tarih</th>
         <% if (user.role === 'admin') { %><th></th><% } %>
       </tr>
     </thead>
     <tbody>
       <% rows.forEach(r => { %>
-      <tr class="<%= r.desktop ? 'row-desktop' : '' %>">
+      <tr class="<%= r.desktop === 'D' ? 'row-desktop' : (r.desktop === 'N' ? 'row-notebook' : '') %>">
         <td><%= r.id %></td>
         <td><%= r.full_name || '-' %></td>
         <td><%= r.department || '-' %></td>
@@ -27,7 +27,7 @@
         <td><%= r.new_pc_name || '-' %></td>
         <td><code><%= r.old_pc_serial || '-' %></code></td>
         <td><code><%= r.new_pc_serial || '-' %></code></td>
-        <td class="center"><input type="checkbox" class="checkbox" disabled <%= r.desktop ? 'checked' : '' %>></td>
+        <td class="center"><%= { D: 'Desktop', N: 'Notebook', V: 'VDI' }[r.desktop] || '' %></td>
         <td style="white-space:pre-line"><%= r.todo || '' %></td>
         <td><%= r.notes || '' %></td>
         <td><%= r.created_by_name %></td>
