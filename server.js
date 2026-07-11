@@ -154,6 +154,8 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
   const rules = await getRules();
   const oldSerial = (req.body.old_pc_serial || '').trim().toUpperCase() || null;
   const newSerial = (req.body.new_pc_serial || '').trim().toUpperCase() || null;
+  const oldPcName = (req.body.old_pc_name || '').trim() || null;
+  const department = (req.body.department || '').trim() || null;
   const desktop = normalizeDevice(req.body.desktop);
   const todo = (req.body.todo || '').trim() || null;
   const notes = (req.body.notes || '').trim() || null;
@@ -196,21 +198,29 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
   }
 
   await pool.query(
-    `INSERT INTO entries (personnel_id, old_pc_name, new_pc_name, old_pc_serial, new_pc_serial, desktop, todo, notes, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [p ? p.id : null, p ? p.old_pc_name : null, p ? p.new_pc_name : null, oldSerial, newSerial, desktop, todo, notes, req.session.user.id]);
+    `INSERT INTO entries (personnel_id, old_pc_name, new_pc_name, department, old_pc_serial, new_pc_serial, desktop, todo, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [p ? p.id : null, oldPcName, p ? p.new_pc_name : null, department, oldSerial, newSerial, desktop, todo, notes, req.session.user.id]);
 
-  // entries geriye dönük kaydın günlüğüdür; personnel ise güncel durumu tutar.
-  // Formda değiştirilebilen alanları (cihaz tipi + seri no) seçilen personele yaz ki
-  // aynı kişi tekrar arandığında en son bilgilerle gelsin. Boş bırakılan seri no,
-  // personeldeki mevcut değeri silmesin (COALESCE ile korunur).
+  // entries geriye dönük kaydın (anlık) günlüğüdür; personnel ise güncel durumu tutar.
+  // Formda değiştirilebilen alanları (cihaz tipi, seri no, eski PC adı, departman) seçilen
+  // personele yaz ki aynı kişi tekrar arandığında en son bilgilerle gelsin. Boş bırakılan
+  // alan, personeldeki mevcut değeri silmesin (COALESCE ile korunur).
   if (p) {
-    await pool.query(
-      `UPDATE personnel SET desktop = ?,
-         old_pc_serial = COALESCE(?, old_pc_serial),
-         new_pc_serial = COALESCE(?, new_pc_serial)
-       WHERE id = ?`,
-      [desktop, oldSerial, newSerial, p.id]);
+    try {
+      await pool.query(
+        `UPDATE personnel SET desktop = ?,
+           old_pc_name = COALESCE(?, old_pc_name),
+           department = COALESCE(?, department),
+           old_pc_serial = COALESCE(?, old_pc_serial),
+           new_pc_serial = COALESCE(?, new_pc_serial)
+         WHERE id = ?`,
+        [desktop, oldPcName, department, oldSerial, newSerial, p.id]);
+    } catch (e) {
+      // old_pc_name degisimi UNIQUE(full_name, old_pc_name) ile cakisabilir;
+      // kayit (entry) yine de olustu, personel senkronu atlanir.
+      if (e.code !== 'ER_DUP_ENTRY') throw e;
+    }
   }
 
   const who = p ? p.full_name : 'kullanıcısız kayıt';
@@ -219,8 +229,10 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
 }));
 
 // --- Kayıt listesi ---
+// department entries'in kendi anlik kolonundan gelir (p.department degil) ki
+// personel sonradan guncellense de gecmis kayit o anki degeri gostersin.
 const ENTRY_SELECT = `
-  SELECT e.*, p.full_name, p.department, u.username AS created_by_name
+  SELECT e.*, p.full_name, u.username AS created_by_name
   FROM entries e
   LEFT JOIN personnel p ON p.id = e.personnel_id
   JOIN app_users u ON u.id = e.created_by`;
@@ -248,7 +260,7 @@ app.post('/kayitlar/:id/sil', requireAdmin, wrap(async (req, res) => {
 // --- CSV export ---
 app.get('/kayitlar/export', requireLogin, wrap(async (req, res) => {
   const [rows] = await pool.query(`
-    SELECT e.id, p.full_name, p.department, e.old_pc_name, e.new_pc_name, e.old_pc_serial, e.new_pc_serial,
+    SELECT e.id, p.full_name, e.department, e.old_pc_name, e.new_pc_name, e.old_pc_serial, e.new_pc_serial,
            e.desktop, e.todo, e.notes, u.username AS created_by,
            DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i') AS created_at
     FROM entries e

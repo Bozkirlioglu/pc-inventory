@@ -8,6 +8,7 @@
       <datalist id="personnel-list">
         <% personnel.forEach(p => { %>
           <option data-id="<%= p.id %>" data-newpcname="<%= p.new_pc_name || '' %>"
+                  data-oldpcname="<%= p.old_pc_name || '' %>" data-department="<%= p.department || '' %>"
                   data-oldserial="<%= p.old_pc_serial || '' %>"
                   data-desktop="<%= p.desktop %>" data-newserial="<%= p.new_pc_serial || '' %>"
                   value="<%= p.seq_no %> - <%= p.full_name %>"></option>
@@ -27,6 +28,9 @@
       </div>
     </label>
     <input type="file" id="barcode-file" accept="image/*" capture="environment" hidden>
+    <label>Eski PC Adı
+      <input name="old_pc_name" id="old-pcname" placeholder="Kullanıcı seçince dolar, düzenlenebilir">
+    </label>
     <label>Eski PC Seri No <% if (rules.old_pc_serial.required) { %><span class="req">*</span><% } %>
       <div class="input-with-btn">
         <input name="old_pc_serial" id="old-serial" placeholder="Elle girin veya metin okuyun"
@@ -35,6 +39,9 @@
       </div>
     </label>
     <input type="file" id="ocr-file" accept="image/*" capture="environment" hidden>
+    <label>Departman
+      <input name="department" id="department" placeholder="Kullanıcı seçince dolar, düzenlenebilir">
+    </label>
     <div id="scanner-box" hidden>
       <p class="muted center" id="scan-target-label"></p>
       <div id="scanner"></div>
@@ -74,6 +81,8 @@
   const search = document.getElementById('personnel-search');
   const hiddenId = document.getElementById('personnel-id');
   const newPcName = document.getElementById('new-pcname');
+  const oldPcName = document.getElementById('old-pcname');
+  const departmentInput = document.getElementById('department');
   const oldSerialInput = document.getElementById('old-serial');
   const newSerialInput = document.getElementById('new-serial');
   const deviceRadios = document.querySelectorAll('input[name="desktop"]');
@@ -105,13 +114,17 @@
   search.addEventListener('input', () => {
     hiddenId.value = '';
     newPcName.value = '';
+    oldPcName.value = '';
+    departmentInput.value = '';
     oldSerialInput.value = '';
     newSerialInput.value = '';
     for (const opt of options) {
       if (opt.value === search.value) {
         hiddenId.value = opt.dataset.id;
         newPcName.value = opt.dataset.newpcname;
-        // Personelle önceden yüklenmiş alanlar formu doldurur
+        // Personelle önceden yüklenmiş alanlar formu doldurur (düzenlenebilir)
+        oldPcName.value = opt.dataset.oldpcname || '';
+        departmentInput.value = opt.dataset.department || '';
         setDevice(opt.dataset.desktop || 'N');
         updateDeviceBg();
         if (opt.dataset.oldserial) oldSerialInput.value = opt.dataset.oldserial;

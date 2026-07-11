@@ -70,6 +70,7 @@ async function init() {
       personnel_id INT NULL,
       old_pc_name VARCHAR(100) NULL,
       new_pc_name VARCHAR(100) NULL,
+      department VARCHAR(100) NULL,
       old_pc_serial VARCHAR(64) NULL,
       new_pc_serial VARCHAR(64) NULL,
       desktop ENUM('D','N','V') NOT NULL DEFAULT 'N',
@@ -107,6 +108,10 @@ async function init() {
   }
   if (!(await columnInfo('entries', 'new_pc_name'))) {
     await pool.query('ALTER TABLE entries ADD COLUMN new_pc_name VARCHAR(100) NULL AFTER old_pc_name');
+  }
+  // entries kayit anindaki departmani da anlik olarak saklar (gecmis donmesin diye)
+  if (!(await columnInfo('entries', 'department'))) {
+    await pool.query('ALTER TABLE entries ADD COLUMN department VARCHAR(100) NULL AFTER new_pc_name');
   }
   // Alanlar varsayilan olarak zorunlu olmadigi icin NULL'a izin ver
   const pid = await columnInfo('entries', 'personnel_id');
