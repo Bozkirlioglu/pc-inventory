@@ -2,7 +2,7 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
-## [Yayınlanmamış]
+## [1.1.0] - 2026-07-11
 
 ### Eklenenler
 - Personele **Numara** (`seq_no`) alanı: 1'den başlayan artan sıra numarası. CSV ile verilebilir;
