@@ -13,6 +13,9 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 - Yeni PC seri no dolu olduğunda alan **mat kırmızı** (`#FF6666`) kutuyla vurgulanır.
 
 ### Değişenler
+- Kayıt kaydedilince, formda girilen güncel bilgiler (cihaz tipi + eski/yeni seri no) seçilen
+  **personel satırına da yazılır**; böylece aynı kişi tekrar arandığında en son bilgilerle gelir.
+  `entries` geriye dönük günlük olarak kalır. Boş bırakılan seri no personeldeki mevcut değeri silmez.
 - Kayıt formunda cihaz tipi ilk açılışta **VDI** seçili gelir.
 - CSV import formatı başa **Numara** sütunu ile genişletildi
   (`Numara;Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No`);

@@ -199,6 +199,20 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
     `INSERT INTO entries (personnel_id, old_pc_name, new_pc_name, old_pc_serial, new_pc_serial, desktop, todo, notes, created_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [p ? p.id : null, p ? p.old_pc_name : null, p ? p.new_pc_name : null, oldSerial, newSerial, desktop, todo, notes, req.session.user.id]);
+
+  // entries geriye dönük kaydın günlüğüdür; personnel ise güncel durumu tutar.
+  // Formda değiştirilebilen alanları (cihaz tipi + seri no) seçilen personele yaz ki
+  // aynı kişi tekrar arandığında en son bilgilerle gelsin. Boş bırakılan seri no,
+  // personeldeki mevcut değeri silmesin (COALESCE ile korunur).
+  if (p) {
+    await pool.query(
+      `UPDATE personnel SET desktop = ?,
+         old_pc_serial = COALESCE(?, old_pc_serial),
+         new_pc_serial = COALESCE(?, new_pc_serial)
+       WHERE id = ?`,
+      [desktop, oldSerial, newSerial, p.id]);
+  }
+
   const who = p ? p.full_name : 'kullanıcısız kayıt';
   req.session.flash = { type: 'success', msg: `Kayıt oluşturuldu: ${who}${newSerial ? ' → ' + newSerial : ''}` };
   res.redirect('/');
