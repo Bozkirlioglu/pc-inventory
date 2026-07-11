@@ -12,6 +12,11 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
   ve seçim `Numara - İsim` biçiminde gösterilir (önceki `İsim — Eski PC Adı` yerine).
 - Yeni PC seri no dolu olduğunda alan **mat kırmızı** (`#FF6666`) kutuyla vurgulanır.
 
+### Düzeltilenler
+- Aynı kişi/PC yeniden kaydedilirken (yeni seri no değişmeden cihaz tipi/#TODO/Not güncellenmek
+  istendiğinde) mükerrer seri no kontrolü kaydı engelliyordu. Artık seri no yalnızca **başka bir
+  kişiye** aitse mükerrer sayılır; aynı kişinin kaydını güncellemek serbesttir.
+
 ### Değişenler
 - Kayıt formuna **Eski PC Adı** ve **Departman** alanları eklendi (kullanıcı seçilince dolar,
   düzenlenebilir). `entries` tablosuna anlık **department** kolonu eklendi; kayıt listesi ve export

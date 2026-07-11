@@ -189,8 +189,13 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
     }
   }
   if (newSerial) {
-    const [[dup]] = await pool.query('SELECT id FROM entries WHERE new_pc_serial = ?', [newSerial]);
-    if (dup) errors.push(`Bu yeni seri no ile zaten kayıt var (#${dup.id}).`);
+    // Aynı kişinin PC'sini yeniden kaydetmek (cihaz tipi/todo/not vb. güncellemek) serbest;
+    // yalnızca seri no BAŞKA bir kişiye (veya kullanıcısız kayda) aitse mükerrer say.
+    let dupSql = 'SELECT id FROM entries WHERE new_pc_serial = ?';
+    const dupParams = [newSerial];
+    if (p) { dupSql += ' AND (personnel_id IS NULL OR personnel_id <> ?)'; dupParams.push(p.id); }
+    const [[dup]] = await pool.query(dupSql + ' LIMIT 1', dupParams);
+    if (dup) errors.push(`Bu yeni seri no ile başka bir kayıt var (#${dup.id}).`);
   }
   if (errors.length) {
     req.session.flash = { type: 'error', msg: errors.join(' ') };
