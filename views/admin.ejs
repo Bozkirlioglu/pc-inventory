@@ -35,7 +35,7 @@
 <div class="grid-2">
   <div class="card">
     <h2>CSV ile Personel Yükle</h2>
-    <p class="muted">Format: <code>Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No</code> — noktalı virgül veya virgül ayraçlı, başlık satırı opsiyonel. Boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır. Desktop sütununa cihaz tipi <code>D</code> (Desktop), <code>N</code> (Notebook) veya <code>V</code> (VDI) yazılır; boş/tanımsız Notebook sayılır (eski <code>1</code>=Desktop, <code>0</code>=Notebook de kabul edilir). Mevcut kayıtlar atlanır.</p>
+    <p class="muted">Format: <code>Numara;Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No</code> — noktalı virgül veya virgül ayraçlı, başlık satırı opsiyonel. Boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır. <strong>Numara</strong> boş bırakılırsa tablodaki son numaradan otomatik artar (boş tabloda 1'den başlar); Numara sütunu olmayan eski dosyalar da yüklenebilir. Desktop sütununa cihaz tipi <code>D</code> (Desktop), <code>N</code> (Notebook) veya <code>V</code> (VDI) yazılır; boş/tanımsız Notebook sayılır (eski <code>1</code>=Desktop, <code>0</code>=Notebook de kabul edilir). Mevcut kayıtlar atlanır.</p>
     <form method="post" action="/admin/import" enctype="multipart/form-data">
       <input type="file" name="csv" accept=".csv,text/csv" required>
       <button type="submit">Yükle</button>
@@ -45,6 +45,9 @@
   <div class="card">
     <h2>Tekil Personel Ekle</h2>
     <form method="post" action="/admin/personel">
+      <label>Numara <small>(boş bırakılırsa sıradaki numara verilir)</small>
+        <input name="seq_no" type="number" min="1" inputmode="numeric">
+      </label>
       <label>Ad Soyad <span class="req">*</span>
         <input name="full_name" required>
       </label>
@@ -103,12 +106,12 @@
   <h2>Personel Listesi (<%= personnel.length %>)</h2>
   <table>
     <thead>
-      <tr><th>#</th><th>Ad Soyad</th><th>Eski PC Adı</th><th>Yeni PC Adı</th><th>Departman</th><th>Cihaz Tipi</th><th>Eski Seri</th><th>Yeni Seri</th><th></th></tr>
+      <tr><th>Numara</th><th>Ad Soyad</th><th>Eski PC Adı</th><th>Yeni PC Adı</th><th>Departman</th><th>Cihaz Tipi</th><th>Eski Seri</th><th>Yeni Seri</th><th></th></tr>
     </thead>
     <tbody>
       <% personnel.forEach(p => { %>
       <tr>
-        <td><%= p.id %></td>
+        <td><%= p.seq_no %></td>
         <td><%= p.full_name %></td>
         <td><%= p.old_pc_name || '-' %></td>
         <td><%= p.new_pc_name || '-' %></td>

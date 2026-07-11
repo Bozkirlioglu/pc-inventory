@@ -134,6 +134,13 @@ fieldset.device-type legend { font-size: 13px; color: #555; padding: 0 4px; }
 .radio-inline { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; }
 .radio-inline input { width: auto; margin: 0; transform: scale(1.2); }
 
+/* Yeni PC seri no dolu olduğunda mat kırmızı kutu vurgusu */
+input.serial-filled {
+  border: 2px solid #FF6666;
+  background: #fff5f5;
+  box-shadow: 0 0 0 3px rgba(255, 102, 102, 0.25);
+}
+
 /* Barkod okuma */
 .input-with-btn { display: flex; gap: 8px; margin-top: 4px; }
 .input-with-btn input { margin-top: 0; flex: 1; }

@@ -11,8 +11,9 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
 ## Neler yapabilir?
 
 ### Kayıt toplama
-- 📋 Arama destekli kullanıcı seçimi — personel listesi önceden yüklenir, teknisyen isim yazarak bulur
+- 📋 Arama destekli kullanıcı seçimi — personel listesi önceden yüklenir, teknisyen **numara veya isim** yazarak bulur; liste numaraya göre artan sıralanır ve seçim "Numara - İsim" olarak gösterilir
 - 🖥️ Yeni PC adı, cihaz tipi ve (önceden yüklendiyse) eski/yeni PC seri numarası kullanıcı seçilince otomatik dolar
+- 🟥 Yeni PC seri no doluysa alan mat kırmızı (`#FF6666`) kutuyla vurgulanır (dolu olduğunu belli eder)
 - 📷 **Eski PC seri no için fotoğraftan OCR** — telefonun kamera uygulamasıyla etiket fotoğrafı çekilir, seri numarası tarayıcıda okunur; birden fazla aday bulunursa doğru değer dokunarak seçilir, sonuç formda düzenlenebilir
 - 📷 **Barkodla yeni PC seri no girişi** — telefon kamerasıyla Code 128, Code 39/93, EAN, UPC, ITF, QR ve DataMatrix okur; canlı tarayıcının tutmadığı zor barkodlar için 🖼️ Foto ile fotoğraf çekip çözme yedeği vardır; elle giriş her zaman mümkün
 - ✅ **Cihaz tipi** (Desktop / Notebook / VDI) radio ile seçilir; seçime göre form ve kayıt listesi renklenir — Desktop yeşil (`#77DD77`), Notebook camgöbeği (`#24ffff`), VDI beyaz
@@ -21,7 +22,7 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
 - 📱 Mobil uyumlu arayüz — saha kullanımı için tasarlandı
 
 ### Yönetim
-- 📥 Personel listesini CSV ile toplu yükleme (`Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No` — `;` veya `,` ayraçlı, mükerrerler otomatik atlanır; boş alanlar yüklemeyi durdurmaz; Desktop sütununa cihaz tipi `D`/`N`/`V` yazılır, boş=Notebook — eski `1`/`0` de kabul edilir)
+- 📥 Personel listesini CSV ile toplu yükleme (`Numara;Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No` — `;` veya `,` ayraçlı, mükerrerler otomatik atlanır; boş alanlar yüklemeyi durdurmaz; **Numara** boşsa son numaradan otomatik artar, Numara sütunu olmayan eski dosyalar da yüklenir; Desktop sütununa cihaz tipi `D`/`N`/`V` yazılır, boş=Notebook — eski `1`/`0` de kabul edilir)
 - ⚙️ **Ayarlanabilir doğrulama kuralları**: hangi alanların zorunlu olduğu ve biçim desenleri (regex) kod değişikliği gerektirmeden yönetim panelinden belirlenir; varsayılan olarak hiçbir alan zorunlu değildir
 - 👥 Rol tabanlı hesaplar: **admin** (yönetim + silme) ve **teknisyen** (kayıt girme/listeleme)
 - 🔍 Kayıtlarda isim, PC adı veya seri no ile arama

@@ -10,7 +10,7 @@
           <option data-id="<%= p.id %>" data-newpcname="<%= p.new_pc_name || '' %>"
                   data-oldserial="<%= p.old_pc_serial || '' %>"
                   data-desktop="<%= p.desktop %>" data-newserial="<%= p.new_pc_serial || '' %>"
-                  value="<%= p.full_name %><%= p.old_pc_name ? ' — ' + p.old_pc_name : '' %>"></option>
+                  value="<%= p.seq_no %> - <%= p.full_name %>"></option>
         <% }) %>
       </datalist>
       <input type="hidden" name="personnel_id" id="personnel-id">
@@ -53,8 +53,8 @@
     <fieldset class="device-type">
       <legend>Cihaz Tipi</legend>
       <label class="radio-inline"><input type="radio" name="desktop" value="D"> Desktop</label>
-      <label class="radio-inline"><input type="radio" name="desktop" value="N" checked> Notebook</label>
-      <label class="radio-inline"><input type="radio" name="desktop" value="V"> VDI</label>
+      <label class="radio-inline"><input type="radio" name="desktop" value="N"> Notebook</label>
+      <label class="radio-inline"><input type="radio" name="desktop" value="V" checked> VDI</label>
     </fieldset>
     <label>#TODO <% if (rules.todo && rules.todo.required) { %><span class="req">*</span><% } else { %><small>(opsiyonel)</small><% } %>
       <textarea name="todo" rows="3" placeholder="Yapılacaklar..." <% if (rules.todo && rules.todo.required) { %>required<% } %>></textarea>
@@ -96,6 +96,12 @@
   }
   deviceRadios.forEach(r => r.addEventListener('change', updateDeviceBg));
 
+  // Yeni PC seri no doluysa alanı mat kırmızı kutuya al (dolu olduğunu vurgular)
+  function updateNewSerialBox() {
+    newSerialInput.classList.toggle('serial-filled', newSerialInput.value.trim() !== '');
+  }
+  newSerialInput.addEventListener('input', updateNewSerialBox);
+
   search.addEventListener('input', () => {
     hiddenId.value = '';
     newPcName.value = '';
@@ -113,6 +119,7 @@
         break;
       }
     }
+    updateNewSerialBox();
   });
 
   document.querySelector('form').addEventListener('submit', e => {
@@ -178,6 +185,7 @@
         { fps: 10, qrbox: { width: 280, height: 140 } }, // yatay kutu: 1D barkod için
         decoded => {
           target.value = decoded.trim().toUpperCase();
+          if (target === newSerialInput) updateNewSerialBox();
           if (navigator.vibrate) navigator.vibrate(100);
           stopScanner();
         },
@@ -221,6 +229,7 @@
     try {
       const decoded = await fileScanner.scanFile(file, /* showImage */ false);
       newSerialInput.value = decoded.trim().toUpperCase();
+      updateNewSerialBox();
       if (navigator.vibrate) navigator.vibrate(100);
       scannerBox.hidden = true;
       barcodeFile.hidden = true;

@@ -132,9 +132,20 @@ function normalizeDevice(raw) {
   return 'N'; // N/NOTEBOOK ve tanimsiz/0/false/hayir varsayilani
 }
 
+// Sira numarasi: pozitif tam sayi degilse null (otomatik atanacak)
+function parseSeq(raw) {
+  const n = parseInt(String(raw == null ? '' : raw).trim(), 10);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+// Tablodaki en buyuk seq_no + 1 (bos tabloda 1)
+async function nextSeqNo(conn = pool) {
+  const [[{ mx }]] = await conn.query('SELECT COALESCE(MAX(seq_no), 0) AS mx FROM personnel');
+  return mx + 1;
+}
+
 // --- Ana sayfa: kayıt formu ---
 app.get('/', requireLogin, wrap(async (req, res) => {
-  const [personnel] = await pool.query('SELECT * FROM personnel ORDER BY full_name');
+  const [personnel] = await pool.query('SELECT * FROM personnel ORDER BY seq_no, full_name');
   const rules = await getRules();
   res.render('index', { personnel, rules });
 }));
@@ -244,7 +255,7 @@ app.get('/kayitlar/export', requireLogin, wrap(async (req, res) => {
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
 
 app.get('/admin', requireAdmin, wrap(async (req, res) => {
-  const [personnel] = await pool.query('SELECT * FROM personnel ORDER BY full_name');
+  const [personnel] = await pool.query('SELECT * FROM personnel ORDER BY seq_no, full_name');
   const [techs] = await pool.query('SELECT id, username, role, created_at FROM app_users ORDER BY username');
   const [ruleRows] = await pool.query('SELECT * FROM field_rules ORDER BY field_name');
   res.render('admin', { personnel, techs, ruleRows });
@@ -276,9 +287,10 @@ app.post('/admin/personel', requireAdmin, wrap(async (req, res) => {
     return res.redirect('/admin');
   }
   try {
+    const seq = parseSeq(req.body.seq_no) ?? await nextSeqNo();
     await pool.query(
-      'INSERT INTO personnel (full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [full_name.trim(), (old_pc_name || '').trim() || null, (new_pc_name || '').trim() || null, (department || '').trim() || null,
+      'INSERT INTO personnel (seq_no, full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [seq, full_name.trim(), (old_pc_name || '').trim() || null, (new_pc_name || '').trim() || null, (department || '').trim() || null,
        normalizeDevice(req.body.desktop), (old_pc_serial || '').trim().toUpperCase() || null, (new_pc_serial || '').trim().toUpperCase() || null]);
     req.session.flash = { type: 'success', msg: 'Personel eklendi.' };
   } catch (e) {
@@ -299,9 +311,11 @@ app.post('/admin/personel/:id/sil', requireAdmin, wrap(async (req, res) => {
   res.redirect('/admin');
 }));
 
-// CSV formati: full_name;old_pc_name;new_pc_name;department;desktop;old_pc_serial;new_pc_serial
+// CSV formati: numara;full_name;old_pc_name;new_pc_name;department;desktop;old_pc_serial;new_pc_serial
 // (; veya , ayiracli, baslik satiri opsiyonel). Bos alanlar importu durdurmaz.
-// desktop: 1/0, true/false, evet/hayır, x kabul edilir
+// numara: bos ise tablodaki son numaradan otomatik artar (bos tabloda 1'den baslar)
+// desktop: D/N/V (geriye donuk 1/0, true/false, evet/hayır, x)
+// Numara sutunu olmayan eski formatlar da desteklenir (bkz. hasSeqCol tespiti).
 app.post('/admin/import', requireAdmin, upload.single('csv'), wrap(async (req, res) => {
   if (!req.file) {
     req.session.flash = { type: 'error', msg: 'Dosya seçilmedi.' };
@@ -316,22 +330,37 @@ app.post('/admin/import', requireAdmin, upload.single('csv'), wrap(async (req, r
     req.session.flash = { type: 'error', msg: 'CSV okunamadı: ' + e.message };
     return res.redirect('/admin');
   }
-  // Başlık satırını atla (ilk hücre "ad" veya "name" içeriyorsa)
-  if (records.length && /ad|name/i.test(records[0][0])) records.shift();
+  // İlk sütun "Numara" mı yoksa doğrudan ad mı? Başlık varsa ondan, yoksa ilk
+  // veri hücresinin sayısal/boş olmasından anlaşılır. Eski (numarasız) CSV'ler de çalışır.
+  let hasSeqCol = false;
+  if (records.length) {
+    const c0 = (records[0][0] || '').trim();
+    const headerLike = /ad soyad|full.?name|^ad$|numara|^no$|sıra|sira/i.test(c0) || /ad|name/i.test(records[0][1] || '');
+    if (headerLike) {
+      hasSeqCol = /numara|^no$|sıra|sira/i.test(c0);
+      records.shift();
+    } else {
+      // Başlıksız: ilk hücre boş ya da tam sayı ise Numara sütunu var say
+      hasSeqCol = c0 === '' || /^\d+$/.test(c0);
+    }
+  }
+  const off = hasSeqCol ? 1 : 0; // ad soyad ve sonraki alanlar için sütun kayması
 
   let added = 0, skipped = 0;
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    let nextSeq = await nextSeqNo(conn);
     for (const r of records) {
-      const name = (r[0] || '').trim();
+      const name = (r[off] || '').trim();
       if (!name) { skipped++; continue; }
-      const desktop = normalizeDevice(r[4]);
+      const desktop = normalizeDevice(r[off + 4]);
+      const seq = (hasSeqCol ? parseSeq(r[0]) : null) ?? nextSeq;
       const [result] = await conn.query(
-        'INSERT IGNORE INTO personnel (full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [name, (r[1] || '').trim() || null, (r[2] || '').trim() || null, (r[3] || '').trim() || null,
-         desktop, (r[5] || '').trim().toUpperCase() || null, (r[6] || '').trim().toUpperCase() || null]);
-      result.affectedRows ? added++ : skipped++;
+        'INSERT IGNORE INTO personnel (seq_no, full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [seq, name, (r[off + 1] || '').trim() || null, (r[off + 2] || '').trim() || null, (r[off + 3] || '').trim() || null,
+         desktop, (r[off + 5] || '').trim().toUpperCase() || null, (r[off + 6] || '').trim().toUpperCase() || null]);
+      if (result.affectedRows) { added++; nextSeq = Math.max(nextSeq, seq) + 1; } else { skipped++; }
     }
     await conn.commit();
   } catch (e) {

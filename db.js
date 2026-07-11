@@ -51,6 +51,7 @@ async function init() {
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS personnel (
+      seq_no INT NULL,
       id INT AUTO_INCREMENT PRIMARY KEY,
       full_name VARCHAR(150) NOT NULL,
       old_pc_name VARCHAR(100) NULL,
@@ -59,6 +60,7 @@ async function init() {
       desktop ENUM('D','N','V') NOT NULL DEFAULT 'N',
       old_pc_serial VARCHAR(64) NULL,
       new_pc_serial VARCHAR(64) NULL,
+      KEY idx_seq (seq_no),
       UNIQUE KEY uq_person (full_name, old_pc_name)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci`);
 
@@ -135,6 +137,17 @@ async function init() {
   // Eski TINYINT desktop -> ENUM('D','N','V') cihaz tipi
   await migrateDesktopEnum('personnel');
   await migrateDesktopEnum('entries');
+
+  // personnel.seq_no: kullaniciya gorunen 1'den artan sira numarasi (CSV ile de gelebilir)
+  if (!(await columnInfo('personnel', 'seq_no'))) {
+    await pool.query('ALTER TABLE personnel ADD COLUMN seq_no INT NULL FIRST');
+    // Mevcut satirlari id sirasina gore 1..N numarala
+    await pool.query('SET @n := 0');
+    await pool.query('UPDATE personnel SET seq_no = (@n := @n + 1) ORDER BY id');
+  }
+  if (!(await indexExists('personnel', 'idx_seq'))) {
+    await pool.query('ALTER TABLE personnel ADD KEY idx_seq (seq_no)');
+  }
 
   // Kural satirlarini tohumla (varsayilan: hicbir alan zorunlu degil, desen yok)
   await pool.query(`

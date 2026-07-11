@@ -4,7 +4,19 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
 ## [Yayınlanmamış]
 
+### Eklenenler
+- Personele **Numara** (`seq_no`) alanı: 1'den başlayan artan sıra numarası. CSV ile verilebilir;
+  boş bırakılırsa tablodaki son numaradan otomatik artar (boş tabloda 1'den başlar). Mevcut kayıtlar
+  ilk açılışta id sırasına göre otomatik numaralanır.
+- Kayıt formundaki kullanıcı listesi artık numaraya göre artan sıralanır, **numarayla da aranabilir**
+  ve seçim `Numara - İsim` biçiminde gösterilir (önceki `İsim — Eski PC Adı` yerine).
+- Yeni PC seri no dolu olduğunda alan **mat kırmızı** (`#FF6666`) kutuyla vurgulanır.
+
 ### Değişenler
+- Kayıt formunda cihaz tipi ilk açılışta **VDI** seçili gelir.
+- CSV import formatı başa **Numara** sütunu ile genişletildi
+  (`Numara;Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No`);
+  Numara sütunu olmayan eski dosyalar geriye dönük desteklenir.
 - **Desktop** alanı üç değerli **cihaz tipine** dönüştü: **D** (Desktop), **N** (Notebook), **V** (VDI).
   Kayıt ve tekil personel formlarında checkbox yerine radio ile seçilir. Seçime göre renklenir:
   Desktop yeşil (`#77DD77`), Notebook camgöbeği (`#24ffff`), VDI beyaz. Kayıt listesinde satırlar
