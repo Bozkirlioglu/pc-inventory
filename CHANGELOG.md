@@ -16,6 +16,9 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 - Aynı kişi/PC yeniden kaydedilirken (yeni seri no değişmeden cihaz tipi/#TODO/Not güncellenmek
   istendiğinde) mükerrer seri no kontrolü kaydı engelliyordu. Artık seri no yalnızca **başka bir
   kişiye** aitse mükerrer sayılır; aynı kişinin kaydını güncellemek serbesttir.
+- **#TODO ve Not** artık personele de yazılır ve kullanıcı tekrar seçilince kayıt formuna ön-dolar
+  (önceden yalnızca entries'e kaydediliyor, formda görünmüyordu). Bu iki alan doğrudan yazılır;
+  boş bırakılırsa personeldeki değer temizlenir (diğer alanlardaki COALESCE korumasından farklı).
 
 ### Değişenler
 - Kayıt formuna **Eski PC Adı** ve **Departman** alanları eklendi (kullanıcı seçilince dolar,

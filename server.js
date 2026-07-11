@@ -208,9 +208,10 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
     [p ? p.id : null, oldPcName, p ? p.new_pc_name : null, department, oldSerial, newSerial, desktop, todo, notes, req.session.user.id]);
 
   // entries geriye dönük kaydın (anlık) günlüğüdür; personnel ise güncel durumu tutar.
-  // Formda değiştirilebilen alanları (cihaz tipi, seri no, eski PC adı, departman) seçilen
-  // personele yaz ki aynı kişi tekrar arandığında en son bilgilerle gelsin. Boş bırakılan
-  // alan, personeldeki mevcut değeri silmesin (COALESCE ile korunur).
+  // Formda değiştirilebilen alanları seçilen personele yaz ki aynı kişi tekrar arandığında
+  // en son bilgilerle gelsin. Cihaz tipi/seri/eski PC adı/departman'da boş bırakılan alan
+  // mevcut değeri silmez (COALESCE). #TODO ve Not ise doğrudan yazılır (forma ön-dolar ve
+  // düzenlenebilir olduğu için temizlenmek istenirse boş da yazılabilsin).
   if (p) {
     try {
       await pool.query(
@@ -218,9 +219,11 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
            old_pc_name = COALESCE(?, old_pc_name),
            department = COALESCE(?, department),
            old_pc_serial = COALESCE(?, old_pc_serial),
-           new_pc_serial = COALESCE(?, new_pc_serial)
+           new_pc_serial = COALESCE(?, new_pc_serial),
+           todo = ?,
+           notes = ?
          WHERE id = ?`,
-        [desktop, oldPcName, department, oldSerial, newSerial, p.id]);
+        [desktop, oldPcName, department, oldSerial, newSerial, todo, notes, p.id]);
     } catch (e) {
       // old_pc_name degisimi UNIQUE(full_name, old_pc_name) ile cakisabilir;
       // kayit (entry) yine de olustu, personel senkronu atlanir.

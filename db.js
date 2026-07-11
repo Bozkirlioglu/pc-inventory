@@ -60,6 +60,8 @@ async function init() {
       desktop ENUM('D','N','V') NOT NULL DEFAULT 'N',
       old_pc_serial VARCHAR(64) NULL,
       new_pc_serial VARCHAR(64) NULL,
+      todo TEXT NULL,
+      notes VARCHAR(500) NULL,
       KEY idx_seq (seq_no),
       UNIQUE KEY uq_person (full_name, old_pc_name)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci`);
@@ -138,6 +140,13 @@ async function init() {
   }
   if (!(await columnInfo('personnel', 'new_pc_serial'))) {
     await pool.query('ALTER TABLE personnel ADD COLUMN new_pc_serial VARCHAR(64) NULL AFTER old_pc_serial');
+  }
+  // personnel de son girilen #TODO ve Not'u tutar (forma geri doldurmak icin)
+  if (!(await columnInfo('personnel', 'todo'))) {
+    await pool.query('ALTER TABLE personnel ADD COLUMN todo TEXT NULL AFTER new_pc_serial');
+  }
+  if (!(await columnInfo('personnel', 'notes'))) {
+    await pool.query('ALTER TABLE personnel ADD COLUMN notes VARCHAR(500) NULL AFTER todo');
   }
   // Eski TINYINT desktop -> ENUM('D','N','V') cihaz tipi
   await migrateDesktopEnum('personnel');

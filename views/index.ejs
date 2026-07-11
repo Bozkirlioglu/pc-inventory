@@ -10,6 +10,7 @@
           <option data-id="<%= p.id %>" data-newpcname="<%= p.new_pc_name || '' %>"
                   data-oldpcname="<%= p.old_pc_name || '' %>" data-department="<%= p.department || '' %>"
                   data-oldserial="<%= p.old_pc_serial || '' %>"
+                  data-todo="<%= p.todo || '' %>" data-notes="<%= p.notes || '' %>"
                   data-desktop="<%= p.desktop %>" data-newserial="<%= p.new_pc_serial || '' %>"
                   value="<%= p.seq_no %> - <%= p.full_name %>"></option>
         <% }) %>
@@ -64,10 +65,10 @@
       <label class="radio-inline"><input type="radio" name="desktop" value="V" checked> VDI</label>
     </fieldset>
     <label>#TODO <% if (rules.todo && rules.todo.required) { %><span class="req">*</span><% } else { %><small>(opsiyonel)</small><% } %>
-      <textarea name="todo" rows="3" placeholder="Yapılacaklar..." <% if (rules.todo && rules.todo.required) { %>required<% } %>></textarea>
+      <textarea name="todo" id="todo" rows="3" placeholder="Yapılacaklar..." <% if (rules.todo && rules.todo.required) { %>required<% } %>></textarea>
     </label>
     <label>Not <% if (rules.notes.required) { %><span class="req">*</span><% } else { %><small>(opsiyonel)</small><% } %>
-      <input name="notes" placeholder="Ek bilgi..." <% if (rules.notes.required) { %>required<% } %>>
+      <input name="notes" id="notes" placeholder="Ek bilgi..." <% if (rules.notes.required) { %>required<% } %>>
     </label>
     <button type="submit">Kaydet</button>
   </form>
@@ -85,6 +86,8 @@
   const departmentInput = document.getElementById('department');
   const oldSerialInput = document.getElementById('old-serial');
   const newSerialInput = document.getElementById('new-serial');
+  const todoInput = document.getElementById('todo');
+  const notesInput = document.getElementById('notes');
   const deviceRadios = document.querySelectorAll('input[name="desktop"]');
   const formCard = document.querySelector('.card');
   const options = document.querySelectorAll('#personnel-list option');
@@ -118,6 +121,8 @@
     departmentInput.value = '';
     oldSerialInput.value = '';
     newSerialInput.value = '';
+    todoInput.value = '';
+    notesInput.value = '';
     for (const opt of options) {
       if (opt.value === search.value) {
         hiddenId.value = opt.dataset.id;
@@ -125,6 +130,8 @@
         // Personelle önceden yüklenmiş alanlar formu doldurur (düzenlenebilir)
         oldPcName.value = opt.dataset.oldpcname || '';
         departmentInput.value = opt.dataset.department || '';
+        todoInput.value = opt.dataset.todo || '';
+        notesInput.value = opt.dataset.notes || '';
         setDevice(opt.dataset.desktop || 'N');
         updateDeviceBg();
         if (opt.dataset.oldserial) oldSerialInput.value = opt.dataset.oldserial;
