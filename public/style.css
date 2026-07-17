@@ -188,6 +188,44 @@ input.serial-filled {
 }
 .action-row button { flex: 1; text-align: center; }
 
+/* Canlı tarayıcı + editör kontrol satırı (ışık / yakınlaştırma / döndürme) */
+.scan-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.scan-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  flex: 1;
+  min-width: 140px;
+}
+.scan-zoom input[type=range] { flex: 1; width: auto; margin: 0; }
+
+/* Ortak fotoğraf editörü: çekilen kareyi yakınlaştır/döndür, sonra çöz */
+#photo-editor {
+  margin-bottom: 12px;
+  border: 2px solid #4361ee;
+  border-radius: 8px;
+  padding: 10px;
+}
+#pe-viewport {
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+}
+#pe-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: none; /* kaydırma/pinch jestleri sayfayı kaydırmasın */
+}
+
 /* Mobil */
 @media (max-width: 600px) {
   main { margin: 12px auto; }

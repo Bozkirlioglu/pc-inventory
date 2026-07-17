@@ -46,6 +46,12 @@
     <div id="scanner-box" hidden>
       <p class="muted center" id="scan-target-label"></p>
       <div id="scanner"></div>
+      <div id="scan-controls" class="scan-controls" hidden>
+        <button type="button" id="scan-torch" class="btn-secondary" hidden>🔦 Işık</button>
+        <label id="scan-zoom-wrap" class="scan-zoom" hidden>🔍
+          <input type="range" id="scan-zoom" min="1" max="5" step="0.1" value="1">
+        </label>
+      </div>
       <p class="muted center" id="scan-status">Kamera başlatılıyor...</p>
       <button type="button" id="scan-cancel" class="btn-secondary btn-block">İptal</button>
     </div>
@@ -56,6 +62,22 @@
       <div class="action-row">
         <button type="button" id="ocr-retake" class="btn-secondary">📷 Tekrar Çek</button>
         <button type="button" id="ocr-cancel" class="btn-secondary">Kapat</button>
+      </div>
+    </div>
+    <div id="photo-editor" hidden>
+      <p class="muted center" id="pe-hint"></p>
+      <div id="pe-viewport"><canvas id="pe-canvas"></canvas></div>
+      <div class="scan-controls">
+        <button type="button" id="pe-rot-left" class="btn-secondary" title="Sola döndür">⟲ Döndür</button>
+        <label class="scan-zoom">🔍
+          <input type="range" id="pe-zoom" min="1" max="6" step="0.05" value="1">
+        </label>
+        <button type="button" id="pe-rot-right" class="btn-secondary" title="Sağa döndür">Döndür ⟳</button>
+      </div>
+      <div class="action-row">
+        <button type="button" id="pe-confirm">Kullan</button>
+        <button type="button" id="pe-retake" class="btn-secondary">📷 Tekrar Çek</button>
+        <button type="button" id="pe-cancel" class="btn-secondary">İptal</button>
       </div>
     </div>
     <fieldset class="device-type">
@@ -156,6 +178,10 @@
   const scanStatus = document.getElementById('scan-status');
   const scanTargetLabel = document.getElementById('scan-target-label');
   const scanButtons = document.querySelectorAll('.scan-btn');
+  const scanControls = document.getElementById('scan-controls');
+  const scanTorch = document.getElementById('scan-torch');
+  const scanZoomWrap = document.getElementById('scan-zoom-wrap');
+  const scanZoom = document.getElementById('scan-zoom');
   const BARCODE_FORMATS = typeof Html5QrcodeSupportedFormats !== 'undefined' ? [
     Html5QrcodeSupportedFormats.CODE_128,
     Html5QrcodeSupportedFormats.CODE_39,
@@ -170,11 +196,56 @@
   ] : [];
   let scanner = null;
 
+  function resetScanControls() {
+    scanControls.hidden = true;
+    scanTorch.hidden = true;
+    scanZoomWrap.hidden = true;
+    scanTorch.onclick = null;
+    scanZoom.oninput = null;
+  }
+
+  // Canlı tarayıcı başladıktan sonra cihaz destekliyorsa ışık (fener) ve
+  // yakınlaştırma denetimlerini bağla — barkoda zoom yapmak netlemeyi hızlandırır.
+  function setupScanControls() {
+    let caps;
+    try { caps = scanner.getRunningTrackCameraCapabilities(); } catch (e) { return; }
+    // Sürekli otofokus (destekleyen cihazlarda; desteklenmezse sessiz geç)
+    try { Promise.resolve(scanner.applyVideoConstraints({ advanced: [{ focusMode: 'continuous' }] })).catch(() => {}); } catch (e) {}
+    let any = false;
+    try {
+      const zoom = caps.zoomFeature();
+      if (zoom && zoom.isSupported()) {
+        scanZoom.min = zoom.min();
+        scanZoom.max = zoom.max();
+        scanZoom.step = zoom.step() || 0.1;
+        scanZoom.value = zoom.value();
+        scanZoom.oninput = () => { try { zoom.apply(Number(scanZoom.value)); } catch (e) {} };
+        scanZoomWrap.hidden = false;
+        any = true;
+      }
+    } catch (e) {}
+    try {
+      const torch = caps.torchFeature();
+      if (torch && torch.isSupported()) {
+        let on = false;
+        const label = () => { scanTorch.textContent = on ? '🔦 Işık ✓' : '🔦 Işık'; };
+        label();
+        scanTorch.onclick = async () => {
+          try { on = !on; await torch.apply(on); label(); } catch (e) {}
+        };
+        scanTorch.hidden = false;
+        any = true;
+      }
+    } catch (e) {}
+    scanControls.hidden = !any;
+  }
+
   async function stopScanner() {
     if (scanner) {
       try { await scanner.stop(); scanner.clear(); } catch (e) {}
       scanner = null;
     }
+    resetScanControls();
     scannerBox.hidden = true;
     scanButtons.forEach(b => b.disabled = false);
     const bf = document.getElementById('barcode-file');
@@ -212,6 +283,7 @@
         () => {} // kare başına okunamama normal, sessiz geç
       );
       scanStatus.textContent = 'Barkodu çerçeveye hizalayın';
+      setupScanControls();
     } catch (err) {
       scanStatus.textContent = 'Kamera açılamadı: ' + (err.message || err);
       scanButtons.forEach(b => b.disabled = false);
@@ -225,7 +297,6 @@
   // netleme ve flaşıyla çekilen tek kare çoğu zaman kurtarır.
   const barcodePhotoBtn = document.getElementById('barcode-photo');
   const barcodeFile = document.getElementById('barcode-file');
-  let barcodeBusy = false;
 
   barcodePhotoBtn.addEventListener('click', async () => {
     if (typeof Html5Qrcode === 'undefined') {
@@ -240,27 +311,36 @@
 
   barcodeFile.addEventListener('change', async () => {
     const file = barcodeFile.files && barcodeFile.files[0];
-    if (!file || barcodeBusy) return;
-    barcodeBusy = true;
-    scannerBox.hidden = false;
-    scanTargetLabel.textContent = 'Yeni PC Seri No';
-    scanStatus.textContent = 'Fotoğraftaki barkod çözülüyor...';
+    barcodeFile.value = ''; // aynı dosya yeniden seçilebilsin diye sıfırla
+    barcodeFile.hidden = true;
+    if (!file) return;
+    await openEditor(file,
+      'Barkodu çerçeveye alıp yakınlaştırın; yamuksa döndürüp yatay yapın, sonra “Kullan”.',
+      decodeBarcodeFromCanvas,
+      () => { barcodeFile.hidden = false; barcodeFile.click(); });
+  });
+
+  // Editörde çerçevelenmiş kareyi barkod olarak çöz; bulunamazsa editörü açık
+  // bırak ki kullanıcı yeniden yakınlaştırıp döndürerek tekrar deneyebilsin.
+  async function decodeBarcodeFromCanvas(canvas) {
+    peConfirmBtn.disabled = true;
+    peHint.textContent = 'Barkod çözülüyor...';
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    const f = new File([blob], 'crop.png', { type: 'image/png' });
     const fileScanner = new Html5Qrcode('scanner', { formatsToSupport: BARCODE_FORMATS });
     try {
-      const decoded = await fileScanner.scanFile(file, /* showImage */ false);
+      const decoded = await fileScanner.scanFile(f, /* showImage */ false);
       newSerialInput.value = decoded.trim().toUpperCase();
       updateNewSerialBox();
       if (navigator.vibrate) navigator.vibrate(100);
-      scannerBox.hidden = true;
-      barcodeFile.hidden = true;
+      closeEditor();
     } catch (err) {
-      scanStatus.textContent = 'Barkod bulunamadı. Barkoda yaklaşıp dik açıyla, net bir fotoğraf çekin ve 🖼️ Foto ile tekrar deneyin.';
+      peHint.textContent = 'Barkod bulunamadı. Barkodu çerçeveye alıp yakınlaştırın, yatay hale getirip tekrar “Kullan”a basın.';
     } finally {
       try { fileScanner.clear(); } catch (e) {}
-      barcodeBusy = false;
-      barcodeFile.value = ''; // aynı dosya yeniden seçilebilsin diye sıfırla
+      peConfirmBtn.disabled = false;
     }
-  });
+  }
 
   // --- Eski seri no için OCR: telefonun kamera uygulamasıyla çekilen fotoğraftan okuma ---
   // Canlı video karesi yerine native kamera fotoğrafı kullanılır: netleme/HDR çok daha iyi,
@@ -342,12 +422,17 @@
 
   // Fotoğrafı en fazla ~2200 px olacak şekilde küçültür, gri tona çevirir ve
   // %1-%99 persentil aralığına kontrast gerer (tek parlama noktası germeyi bozmasın diye min/max değil).
-  async function photoToFrame(file) {
+  async function photoToFrame(src) {
+    // src: File (kamera) veya editörden gelen canvas/ImageBitmap olabilir
     let bmp;
-    try {
-      bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); // EXIF dönüşünü uygula
-    } catch (e) {
-      bmp = await createImageBitmap(file); // eski tarayıcılar seçenek nesnesini desteklemeyebilir
+    if (typeof ImageBitmap !== 'undefined' && src instanceof ImageBitmap) {
+      bmp = src;
+    } else {
+      try {
+        bmp = await createImageBitmap(src, { imageOrientation: 'from-image' }); // EXIF dönüşünü uygula
+      } catch (e) {
+        bmp = await createImageBitmap(src); // eski tarayıcılar seçenek nesnesini desteklemeyebilir
+      }
     }
     const ratio = Math.min(1, 2200 / Math.max(bmp.width, bmp.height));
     ocrCanvas.width = Math.round(bmp.width * ratio);
@@ -439,14 +524,24 @@
 
   ocrFile.addEventListener('change', async () => {
     const file = ocrFile.files && ocrFile.files[0];
-    if (!file || ocrBusy) return;
+    ocrFile.value = ''; // aynı dosya yeniden seçilebilsin diye sıfırla
+    ocrFile.hidden = true;
+    if (!file) return;
+    await openEditor(file,
+      'Etiketi çerçeveye alıp yakınlaştırın; yazı yatay olacak şekilde döndürün, sonra “Kullan”.',
+      canvas => { closeEditor(); runOcr(canvas); },
+      () => { ocrFile.hidden = false; ocrFile.click(); });
+  });
+
+  async function runOcr(source) {
+    if (ocrBusy) return;
     ocrBusy = true;
     ocrBox.hidden = false;
     ocrCandidates.innerHTML = '';
     ocrRetake.disabled = true;
     ocrStatus.textContent = 'Fotoğraf işleniyor...';
     try {
-      const frame = await photoToFrame(file);
+      const frame = await photoToFrame(source);
       const worker = await getOcrWorker();
       // 1. deneme: kontrastı gerilmiş gri ton — eşiklemeyi Tesseract'ın kendi Otsu'suna bırak
       let result = await worker.recognize(paintOcrFrame(frame));
@@ -478,11 +573,116 @@
     } finally {
       ocrBusy = false;
       ocrRetake.disabled = false;
-      ocrFile.value = ''; // aynı dosya yeniden seçilebilsin diye sıfırla
     }
-  });
+  }
 
   ocrRetake.addEventListener('click', () => { if (!ocrBusy) ocrFile.click(); });
   ocrCancel.addEventListener('click', closeOcr);
+
+  // --- Ortak fotoğraf editörü: çekilen kareyi yakınlaştır/döndür, sonra çöz ---
+  // Hem barkod fotoğrafı (yeni seri) hem OCR (eski seri) bu editörden geçer.
+  // Barkodu/etiketi çerçeveye alıp yatay hale getirmek okuma başarısını ciddi artırır;
+  // native kamera tek net kare çektiği için canlı otofokusla boğuşmak da gerekmez.
+  const photoEditor = document.getElementById('photo-editor');
+  const peCanvas = document.getElementById('pe-canvas');
+  const peZoom = document.getElementById('pe-zoom');
+  const peHint = document.getElementById('pe-hint');
+  const peConfirmBtn = document.getElementById('pe-confirm');
+  const PE_W = 2048, PE_H = 1536; // iç çözünürlük (4:3) — yatay barkodlara uygun
+  const peCtx = peCanvas.getContext('2d');
+  let peImg = null, peRot = 0, peScale = 1, panX = 0, panY = 0;
+  let peConfirmCb = null, peRetakeCb = null;
+
+  function peBaseScale() {
+    const rw = (peRot % 180 === 0) ? peImg.width : peImg.height;
+    const rh = (peRot % 180 === 0) ? peImg.height : peImg.width;
+    return Math.min(PE_W / rw, PE_H / rh);
+  }
+
+  function peRender() {
+    if (!peImg) return;
+    const eff = peBaseScale() * peScale;
+    peCtx.setTransform(1, 0, 0, 1, 0, 0);
+    peCtx.fillStyle = '#000';
+    peCtx.fillRect(0, 0, PE_W, PE_H);
+    peCtx.imageSmoothingQuality = 'high';
+    peCtx.translate(PE_W / 2 + panX, PE_H / 2 + panY);
+    peCtx.rotate(peRot * Math.PI / 180);
+    peCtx.scale(eff, eff);
+    peCtx.drawImage(peImg, -peImg.width / 2, -peImg.height / 2);
+  }
+
+  async function openEditor(file, hint, onConfirm, onRetake) {
+    if (peImg) { try { peImg.close(); } catch (e) {} peImg = null; }
+    try {
+      peImg = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch (e) {
+      peImg = await createImageBitmap(file);
+    }
+    peCanvas.width = PE_W;
+    peCanvas.height = PE_H;
+    peRot = 0; peScale = 1; panX = 0; panY = 0;
+    peZoom.value = 1;
+    peHint.textContent = hint || '';
+    peConfirmBtn.disabled = false;
+    peConfirmCb = onConfirm;
+    peRetakeCb = onRetake;
+    photoEditor.hidden = false;
+    peRender();
+  }
+
+  function closeEditor() {
+    photoEditor.hidden = true;
+    if (peImg) { try { peImg.close(); } catch (e) {} peImg = null; }
+    peConfirmCb = null;
+    peRetakeCb = null;
+  }
+
+  peZoom.addEventListener('input', () => { peScale = Number(peZoom.value); peRender(); });
+  document.getElementById('pe-rot-left').addEventListener('click', () => { peRot = (peRot + 270) % 360; panX = 0; panY = 0; peRender(); });
+  document.getElementById('pe-rot-right').addEventListener('click', () => { peRot = (peRot + 90) % 360; panX = 0; panY = 0; peRender(); });
+  document.getElementById('pe-cancel').addEventListener('click', closeEditor);
+  document.getElementById('pe-retake').addEventListener('click', () => { const cb = peRetakeCb; closeEditor(); if (cb) cb(); });
+  peConfirmBtn.addEventListener('click', () => { if (peConfirmCb) peConfirmCb(peCanvas); });
+
+  // Tek parmak: kaydır. İki parmak: yakınlaştır (slider yedek olarak her cihazda çalışır).
+  const pePointers = new Map();
+  let pePinchDist = 0, pePinchScale = 1;
+  peCanvas.addEventListener('pointerdown', e => {
+    try { peCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+    pePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pePointers.size === 2) {
+      const pts = [...pePointers.values()];
+      pePinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      pePinchScale = peScale;
+    }
+  });
+  peCanvas.addEventListener('pointermove', e => {
+    const p = pePointers.get(e.pointerId);
+    if (!p) return;
+    const rect = peCanvas.getBoundingClientRect();
+    const toCanvas = rect.width ? PE_W / rect.width : 1; // ekran px -> iç canvas px
+    if (pePointers.size === 1) {
+      panX += (e.clientX - p.x) * toCanvas;
+      panY += (e.clientY - p.y) * toCanvas;
+      p.x = e.clientX; p.y = e.clientY;
+      peRender();
+    } else if (pePointers.size === 2) {
+      p.x = e.clientX; p.y = e.clientY;
+      const pts = [...pePointers.values()];
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (pePinchDist > 0) {
+        peScale = Math.min(6, Math.max(1, pePinchScale * dist / pePinchDist));
+        peZoom.value = peScale;
+        peRender();
+      }
+    }
+  });
+  function pePointerEnd(e) {
+    pePointers.delete(e.pointerId);
+    if (pePointers.size < 2) pePinchDist = 0;
+  }
+  peCanvas.addEventListener('pointerup', pePointerEnd);
+  peCanvas.addEventListener('pointercancel', pePointerEnd);
 </script>
 <%- include('layout-bottom') %>
