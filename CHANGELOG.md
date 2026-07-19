@@ -2,6 +2,25 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
+## [1.2.0] - 2026-07-19
+
+### Eklenenler
+- Canlı barkod tarayıcısına (**📷 Okut**) cihaz destekliyorsa **fener (🔦 Işık)** ve
+  **yakınlaştırma (🔍)** denetimleri eklendi; ayrıca **sürekli otofokus** denenir. Yakın/loş
+  barkodlarda netlemeyi hızlandırır (`html5-qrcode` `torchFeature()` / `zoomFeature()`).
+  Desteklenmeyen cihazlarda denetimler sessizce gizli kalır.
+- Yeni **ortak fotoğraf editörü**: 🖼️ Foto (yeni seri barkod fotoğrafı) ve 📷 Metin Oku
+  (eski seri OCR) yollarında çekilen kare çözülmeden önce yakınlaştırılıp (slider + iki parmak
+  pinch), **90°'lik adımlarla döndürülüp** tek parmakla kaydırılarak çerçevelenebilir. "Kullan"
+  ile çerçevelenen yüksek çözünürlüklü kare çözücüye verilir; etiketi/barkodu yatay hale getirmek
+  okuma başarısını ciddi artırır ve canlı otofokusla boğuşmayı gereksiz kılar.
+
+### Değişenler
+- 🖼️ Foto barkod çözümü artık editörden geçer; barkod bulunamazsa editör açık kalır, kullanıcı
+  yeniden çerçeveleyip tekrar deneyebilir.
+- `photoToFrame` OCR ön-işleme artık `File` yanında editörden gelen `canvas` / `ImageBitmap`
+  kaynaklarını da kabul eder.
+
 ## [1.1.0] - 2026-07-11
 
 ### Eklenenler
