@@ -9,6 +9,13 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
   CSV import/export bu değeri tanır. Seçilince form arka planı ve kayıt listesindeki satır
   **turuncu** (`#fc7b03`) boyanır. `desktop` ENUM'u `('D','N','V','W')` olacak şekilde idempotent
   migration ile genişletildi.
+- **Personel Listesi** artık admin panelinden **⬇ CSV İndir** ile dışa aktarılabilir; sütun düzeni
+  içe aktarma formatıyla aynıdır (tekrar yüklenebilir), noktalı virgül ayraçlı ve UTF-8 BOM'lu.
+
+### Değişenler
+- **Kurulum Kayıtları** (`/kayitlar`) tablosu yeniden sıralandı: **Numara** (personel sıra no),
+  **Yeni PC Adı**, **Yeni Seri**, **Cihaz Tipi**, **Kaydeden** öne alındı; diğer alanlar (ID,
+  Kullanıcı, Departman, Eski PC Adı, Eski Seri, #TODO, Not, Tarih) sağa ötelendi. Sil sütunu korundu.
 
 ## [1.2.0] - 2026-07-19
 

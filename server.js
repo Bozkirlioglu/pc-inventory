@@ -241,7 +241,7 @@ app.post('/kayit', requireLogin, wrap(async (req, res) => {
 // department entries'in kendi anlik kolonundan gelir (p.department degil) ki
 // personel sonradan guncellense de gecmis kayit o anki degeri gostersin.
 const ENTRY_SELECT = `
-  SELECT e.*, p.full_name, u.username AS created_by_name
+  SELECT e.*, p.seq_no, p.full_name, u.username AS created_by_name
   FROM entries e
   LEFT JOIN personnel p ON p.id = e.personnel_id
   JOIN app_users u ON u.id = e.created_by`;
@@ -288,6 +288,20 @@ app.get('/kayitlar/export', requireLogin, wrap(async (req, res) => {
 
 // --- Admin: personel yönetimi + CSV import ---
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+
+// Personel listesi CSV export — import ile ayni sutun duzeni (tekrar yuklenebilir)
+app.get('/admin/personel/export', requireAdmin, wrap(async (req, res) => {
+  const [rows] = await pool.query(
+    'SELECT seq_no, full_name, old_pc_name, new_pc_name, department, desktop, old_pc_serial, new_pc_serial FROM personnel ORDER BY seq_no, full_name');
+  const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  const header = 'Numara;Ad Soyad;Eski PC Adi;Yeni PC Adi;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No';
+  const lines = rows.map(r => [r.seq_no, r.full_name, r.old_pc_name, r.new_pc_name, r.department,
+    r.desktop, r.old_pc_serial, r.new_pc_serial].map(esc).join(';'));
+  const csv = '﻿' + [header, ...lines].join('\r\n'); // BOM: Excel'de Türkçe karakterler için
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="personel-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send(csv);
+}));
 
 app.get('/admin', requireAdmin, wrap(async (req, res) => {
   const [personnel] = await pool.query('SELECT * FROM personnel ORDER BY seq_no, full_name');

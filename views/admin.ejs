@@ -104,7 +104,10 @@
 </div>
 
 <div class="card">
-  <h2>Personel Listesi (<%= personnel.length %>)</h2>
+  <div class="card-header">
+    <h2>Personel Listesi (<%= personnel.length %>)</h2>
+    <a href="/admin/personel/export" class="btn-secondary">⬇ CSV İndir</a>
+  </div>
   <table>
     <thead>
       <tr><th>Numara</th><th>Ad Soyad</th><th>Eski PC Adı</th><th>Yeni PC Adı</th><th>Departman</th><th>Cihaz Tipi</th><th>Eski Seri</th><th>Yeni Seri</th><th></th></tr>
