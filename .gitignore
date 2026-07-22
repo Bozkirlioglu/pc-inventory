@@ -11,6 +11,7 @@ AGENTS.md
 CLAUDE.md
 docs/
 .claude/
+resume.md
 
 # --- Veri dosyalari: personel listesi (kisisel veri!) ve DB yedekleri asla push edilmez ---
 *.csv
