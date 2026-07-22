@@ -19,7 +19,7 @@
     </thead>
     <tbody>
       <% rows.forEach(r => { %>
-      <tr class="<%= r.desktop === 'D' ? 'row-desktop' : (r.desktop === 'N' ? 'row-notebook' : '') %>">
+      <tr class="<%= r.desktop === 'D' ? 'row-desktop' : (r.desktop === 'N' ? 'row-notebook' : (r.desktop === 'W' ? 'row-workgroup' : '')) %>">
         <td><%= r.id %></td>
         <td><%= r.full_name || '-' %></td>
         <td><%= r.department || '-' %></td>
@@ -27,7 +27,7 @@
         <td><%= r.new_pc_name || '-' %></td>
         <td><code><%= r.old_pc_serial || '-' %></code></td>
         <td><code><%= r.new_pc_serial || '-' %></code></td>
-        <td class="center"><%= { D: 'Desktop', N: 'Notebook', V: 'VDI' }[r.desktop] || '' %></td>
+        <td class="center"><%= { D: 'Desktop', N: 'Notebook', V: 'VDI', W: 'Workgroup' }[r.desktop] || '' %></td>
         <td style="white-space:pre-line"><%= r.todo || '' %></td>
         <td><%= r.notes || '' %></td>
         <td><%= r.created_by_name %></td>

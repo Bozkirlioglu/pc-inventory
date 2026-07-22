@@ -15,20 +15,23 @@ const pool = mysql.createPool({
 
 async function columnInfo(table, column) {
   const [rows] = await pool.query(
-    `SELECT IS_NULLABLE, DATA_TYPE FROM information_schema.columns
+    `SELECT IS_NULLABLE, DATA_TYPE, COLUMN_TYPE FROM information_schema.columns
      WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`, [table, column]);
   return rows[0] || null;
 }
 
 // desktop alani eskiden TINYINT(1) (0/1) idi; artik cihaz tipi kodu tutar:
-// 'D' Desktop, 'N' Notebook, 'V' VDI. Eski TINYINT'i idempotent olarak ENUM'a cevirir.
+// 'D' Desktop, 'N' Notebook, 'V' VDI, 'W' Workgroup. Eski TINYINT'i idempotent olarak ENUM'a cevirir.
 async function migrateDesktopEnum(table) {
   const info = await columnInfo(table, 'desktop');
   if (info && /int/i.test(info.DATA_TYPE)) {
     await pool.query(`ALTER TABLE ${table} MODIFY desktop VARCHAR(8) NULL`);
     await pool.query(`UPDATE ${table} SET desktop = 'D' WHERE desktop = '1'`);
-    await pool.query(`UPDATE ${table} SET desktop = 'N' WHERE desktop IS NULL OR desktop NOT IN ('D','N','V')`);
-    await pool.query(`ALTER TABLE ${table} MODIFY desktop ENUM('D','N','V') NOT NULL DEFAULT 'N'`);
+    await pool.query(`UPDATE ${table} SET desktop = 'N' WHERE desktop IS NULL OR desktop NOT IN ('D','N','V','W')`);
+    await pool.query(`ALTER TABLE ${table} MODIFY desktop ENUM('D','N','V','W') NOT NULL DEFAULT 'N'`);
+  } else if (info && /^enum/i.test(info.COLUMN_TYPE) && !/'W'/.test(info.COLUMN_TYPE)) {
+    // Zaten ENUM ama 'W' (Workgroup) sonradan eklendi -> ENUM'u genislet
+    await pool.query(`ALTER TABLE ${table} MODIFY desktop ENUM('D','N','V','W') NOT NULL DEFAULT 'N'`);
   }
 }
 
@@ -57,7 +60,7 @@ async function init() {
       old_pc_name VARCHAR(100) NULL,
       new_pc_name VARCHAR(100) NULL,
       department VARCHAR(100) NULL,
-      desktop ENUM('D','N','V') NOT NULL DEFAULT 'N',
+      desktop ENUM('D','N','V','W') NOT NULL DEFAULT 'N',
       old_pc_serial VARCHAR(64) NULL,
       new_pc_serial VARCHAR(64) NULL,
       todo TEXT NULL,
@@ -75,7 +78,7 @@ async function init() {
       department VARCHAR(100) NULL,
       old_pc_serial VARCHAR(64) NULL,
       new_pc_serial VARCHAR(64) NULL,
-      desktop ENUM('D','N','V') NOT NULL DEFAULT 'N',
+      desktop ENUM('D','N','V','W') NOT NULL DEFAULT 'N',
       todo TEXT NULL,
       notes VARCHAR(500) NULL,
       created_by INT NOT NULL,
@@ -126,14 +129,14 @@ async function init() {
   }
   // desktop (cihaz tipi) ve todo alanlari sonradan eklendi
   if (!(await columnInfo('entries', 'desktop'))) {
-    await pool.query("ALTER TABLE entries ADD COLUMN desktop ENUM('D','N','V') NOT NULL DEFAULT 'N' AFTER new_pc_serial");
+    await pool.query("ALTER TABLE entries ADD COLUMN desktop ENUM('D','N','V','W') NOT NULL DEFAULT 'N' AFTER new_pc_serial");
   }
   if (!(await columnInfo('entries', 'todo'))) {
     await pool.query('ALTER TABLE entries ADD COLUMN todo TEXT NULL AFTER desktop');
   }
   // personnel: CSV ile onceden yuklenen desktop ve yeni seri no bilgisi
   if (!(await columnInfo('personnel', 'desktop'))) {
-    await pool.query("ALTER TABLE personnel ADD COLUMN desktop ENUM('D','N','V') NOT NULL DEFAULT 'N' AFTER department");
+    await pool.query("ALTER TABLE personnel ADD COLUMN desktop ENUM('D','N','V','W') NOT NULL DEFAULT 'N' AFTER department");
   }
   if (!(await columnInfo('personnel', 'old_pc_serial'))) {
     await pool.query('ALTER TABLE personnel ADD COLUMN old_pc_serial VARCHAR(64) NULL AFTER desktop');
@@ -148,7 +151,7 @@ async function init() {
   if (!(await columnInfo('personnel', 'notes'))) {
     await pool.query('ALTER TABLE personnel ADD COLUMN notes VARCHAR(500) NULL AFTER todo');
   }
-  // Eski TINYINT desktop -> ENUM('D','N','V') cihaz tipi
+  // Eski TINYINT desktop -> ENUM('D','N','V','W') cihaz tipi
   await migrateDesktopEnum('personnel');
   await migrateDesktopEnum('entries');
 

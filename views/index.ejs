@@ -85,6 +85,7 @@
       <label class="radio-inline"><input type="radio" name="desktop" value="D"> Desktop</label>
       <label class="radio-inline"><input type="radio" name="desktop" value="N"> Notebook</label>
       <label class="radio-inline"><input type="radio" name="desktop" value="V" checked> VDI</label>
+      <label class="radio-inline"><input type="radio" name="desktop" value="W"> Workgroup</label>
     </fieldset>
     <label>#TODO <% if (rules.todo && rules.todo.required) { %><span class="req">*</span><% } else { %><small>(opsiyonel)</small><% } %>
       <textarea name="todo" id="todo" rows="3" placeholder="Yapılacaklar..." <% if (rules.todo && rules.todo.required) { %>required<% } %>></textarea>
@@ -114,8 +115,8 @@
   const formCard = document.querySelector('.card');
   const options = document.querySelectorAll('#personnel-list option');
 
-  // Cihaz tipine göre arka plan: Desktop yeşil, Notebook camgöbeği, VDI beyaz
-  const DEVICE_BG = { D: '#77DD77', N: '#24ffff', V: '' };
+  // Cihaz tipine göre arka plan: Desktop yeşil, Notebook camgöbeği, Workgroup turuncu, VDI beyaz
+  const DEVICE_BG = { D: '#77DD77', N: '#24ffff', V: '', W: '#fc7b03' };
   function currentDevice() {
     const r = document.querySelector('input[name="desktop"]:checked');
     return r ? r.value : 'N';

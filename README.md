@@ -16,7 +16,7 @@ numarasını elle yazarak **veya telefon kamerasıyla barkod okutarak** girer ve
 - 🟥 Yeni PC seri no doluysa alan mat kırmızı (`#FF6666`) kutuyla vurgulanır (dolu olduğunu belli eder)
 - 📷 **Eski PC seri no için fotoğraftan OCR** — telefonun kamera uygulamasıyla etiket fotoğrafı çekilir, seri numarası tarayıcıda okunur; birden fazla aday bulunursa doğru değer dokunarak seçilir, sonuç formda düzenlenebilir
 - 📷 **Barkodla yeni PC seri no girişi** — telefon kamerasıyla Code 128, Code 39/93, EAN, UPC, ITF, QR ve DataMatrix okur; canlı tarayıcının tutmadığı zor barkodlar için 🖼️ Foto ile fotoğraf çekip çözme yedeği vardır; elle giriş her zaman mümkün
-- ✅ **Cihaz tipi** (Desktop / Notebook / VDI) radio ile seçilir; seçime göre form ve kayıt listesi renklenir — Desktop yeşil (`#77DD77`), Notebook camgöbeği (`#24ffff`), VDI beyaz
+- ✅ **Cihaz tipi** (Desktop / Notebook / VDI / Workgroup) radio ile seçilir; seçime göre form ve kayıt listesi renklenir — Desktop yeşil (`#77DD77`), Notebook camgöbeği (`#24ffff`), Workgroup turuncu (`#fc7b03`), VDI beyaz
 - 📝 **#TODO** alanı — kayıt başına çok satırlı yapılacaklar notu (Not alanının üzerinde)
 - 🔁 Yeni seri numarasında mükerrer kayıt engeli
 - 📱 Mobil uyumlu arayüz — saha kullanımı için tasarlandı

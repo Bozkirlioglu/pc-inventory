@@ -122,13 +122,14 @@ async function getRules() {
   return Object.fromEntries(rows.map(r => [r.field_name, r]));
 }
 
-// Cihaz tipi: 'D' Desktop, 'N' Notebook, 'V' VDI. Form/CSV girdisini normalize eder.
+// Cihaz tipi: 'D' Desktop, 'N' Notebook, 'V' VDI, 'W' Workgroup. Form/CSV girdisini normalize eder.
 // Geriye donuk uyum: eski 1/true/evet/x -> Desktop, 0/false/hayir/bos -> Notebook.
-const DEVICE_LABELS = { D: 'Desktop', N: 'Notebook', V: 'VDI' };
+const DEVICE_LABELS = { D: 'Desktop', N: 'Notebook', V: 'VDI', W: 'Workgroup' };
 function normalizeDevice(raw) {
   const s = String(raw == null ? '' : raw).trim().toUpperCase();
   if (s === 'D' || s === 'DESKTOP' || /^(1|TRUE|EVET|X)$/.test(s)) return 'D';
   if (s === 'V' || s === 'VDI') return 'V';
+  if (s === 'W' || s === 'WORKGROUP') return 'W';
   return 'N'; // N/NOTEBOOK ve tanimsiz/0/false/hayir varsayilani
 }
 
@@ -348,7 +349,7 @@ app.post('/admin/personel/:id/sil', requireAdmin, wrap(async (req, res) => {
 // CSV formati: numara;full_name;old_pc_name;new_pc_name;department;desktop;old_pc_serial;new_pc_serial
 // (; veya , ayiracli, baslik satiri opsiyonel). Bos alanlar importu durdurmaz.
 // numara: bos ise tablodaki son numaradan otomatik artar (bos tabloda 1'den baslar)
-// desktop: D/N/V (geriye donuk 1/0, true/false, evet/hayır, x)
+// desktop: D/N/V/W (geriye donuk 1/0, true/false, evet/hayır, x)
 // Numara sutunu olmayan eski formatlar da desteklenir (bkz. hasSeqCol tespiti).
 app.post('/admin/import', requireAdmin, upload.single('csv'), wrap(async (req, res) => {
   if (!req.file) {

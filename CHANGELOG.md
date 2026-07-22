@@ -2,6 +2,14 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kurallarını izler.
 
+## [Yayınlanmadı]
+
+### Eklenenler
+- Cihaz tipine yeni değer: **W** (Workgroup). Radio seçeneği kayıt ve admin formlarına eklendi,
+  CSV import/export bu değeri tanır. Seçilince form arka planı ve kayıt listesindeki satır
+  **turuncu** (`#fc7b03`) boyanır. `desktop` ENUM'u `('D','N','V','W')` olacak şekilde idempotent
+  migration ile genişletildi.
+
 ## [1.2.0] - 2026-07-19
 
 ### Eklenenler

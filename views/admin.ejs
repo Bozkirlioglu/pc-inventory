@@ -35,7 +35,7 @@
 <div class="grid-2">
   <div class="card">
     <h2>CSV ile Personel Yükle</h2>
-    <p class="muted">Format: <code>Numara;Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No</code> — noktalı virgül veya virgül ayraçlı, başlık satırı opsiyonel. Boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır. <strong>Numara</strong> boş bırakılırsa tablodaki son numaradan otomatik artar (boş tabloda 1'den başlar); Numara sütunu olmayan eski dosyalar da yüklenebilir. Desktop sütununa cihaz tipi <code>D</code> (Desktop), <code>N</code> (Notebook) veya <code>V</code> (VDI) yazılır; boş/tanımsız Notebook sayılır (eski <code>1</code>=Desktop, <code>0</code>=Notebook de kabul edilir). Mevcut kayıtlar atlanır.</p>
+    <p class="muted">Format: <code>Numara;Ad Soyad;Eski PC Adı;Yeni PC Adı;Departman;Desktop;Eski PC Seri No;Yeni PC Seri No</code> — noktalı virgül veya virgül ayraçlı, başlık satırı opsiyonel. Boş alanlar yüklemeyi durdurmaz; ad soyadı boş satırlar atlanır. <strong>Numara</strong> boş bırakılırsa tablodaki son numaradan otomatik artar (boş tabloda 1'den başlar); Numara sütunu olmayan eski dosyalar da yüklenebilir. Desktop sütununa cihaz tipi <code>D</code> (Desktop), <code>N</code> (Notebook), <code>V</code> (VDI) veya <code>W</code> (Workgroup) yazılır; boş/tanımsız Notebook sayılır (eski <code>1</code>=Desktop, <code>0</code>=Notebook de kabul edilir). Mevcut kayıtlar atlanır.</p>
     <form method="post" action="/admin/import" enctype="multipart/form-data">
       <input type="file" name="csv" accept=".csv,text/csv" required>
       <button type="submit">Yükle</button>
@@ -71,6 +71,7 @@
         <label class="radio-inline"><input type="radio" name="desktop" value="D"> Desktop</label>
         <label class="radio-inline"><input type="radio" name="desktop" value="N" checked> Notebook</label>
         <label class="radio-inline"><input type="radio" name="desktop" value="V"> VDI</label>
+        <label class="radio-inline"><input type="radio" name="desktop" value="W"> Workgroup</label>
       </fieldset>
       <button type="submit">Ekle</button>
     </form>
@@ -116,7 +117,7 @@
         <td><%= p.old_pc_name || '-' %></td>
         <td><%= p.new_pc_name || '-' %></td>
         <td><%= p.department || '-' %></td>
-        <td class="center"><%= { D: 'Desktop', N: 'Notebook', V: 'VDI' }[p.desktop] || '' %></td>
+        <td class="center"><%= { D: 'Desktop', N: 'Notebook', V: 'VDI', W: 'Workgroup' }[p.desktop] || '' %></td>
         <td><code><%= p.old_pc_serial || '-' %></code></td>
         <td><code><%= p.new_pc_serial || '-' %></code></td>
         <td>
